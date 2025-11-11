@@ -3,6 +3,7 @@ const router = express.Router();
 
 router.use("/", require("./main.routes"));
 router.use("/auth", require("./auth.routes"));
+router.use("/billing", require("./billing.routes")); 
 
 router.use("/users", require("./users.routes"));
 router.use("/renter-profiles", require("./renterProfiles.routes"));

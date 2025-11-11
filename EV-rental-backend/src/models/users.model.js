@@ -2,10 +2,10 @@ let users = [
   {
     user_id: "u001",
     full_name: "Nguyen Van A",
-    email: "nguyena@gmail.com",
+    email: "admin@gmail.com",
     phone: "0901234567",
     role: "admin",
-    password: "password123",
+    password: "123456",
     created_at: "2023-10-25T10:00:00Z",
     updated_at: "2023-10-26T15:30:00Z",
     is_active: true
@@ -16,7 +16,7 @@ let users = [
     email: "tranb@gmail.com",
     phone: "0387654321",
     role: "staff",
-    password: "minhlastaff",
+    password: "123456",
     created_at: "2023-11-01T08:00:00Z",
     updated_at: "2023-11-01T08:00:00Z",
     is_active: true
@@ -27,7 +27,7 @@ let users = [
     email: "levanc@gmail.com",
     phone: "0912345678",
     role: "renter",
-    password: "renter123",
+    password: "123456",
     created_at: "2023-11-05T10:00:00Z",
     updated_at: "2023-11-05T10:00:00Z",
     is_active: true
@@ -38,7 +38,7 @@ let users = [
     email: "phamtd@gmail.com",
     phone: "0987654321",
     role: "renter",
-    password: "renter456",
+    password: "123456",
     created_at: "2023-11-06T10:00:00Z",
     updated_at: "2023-11-06T10:00:00Z",
     is_active: true
