@@ -42,9 +42,9 @@ export default function Home() {
                 </select>
                 <select value={type} onChange={e => setType(e.target.value)}>
                     <option value="">All types</option>
-                    <option value="scooter">Scooter</option>
-                    <option value="bike">Bike</option>
-                    <option value="car">Car</option>
+                    <option value="Evo">Evo</option>
+                    <option value="Klara">Klara</option>
+                    <option value="Vento">Vento</option>
                 </select>
                 <button onClick={load}>Refresh</button>
             </div>

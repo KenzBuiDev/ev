@@ -11,6 +11,8 @@ import ManageRentals from "./pages/admin/ManageRentals";
 import ManageReports from "./pages/admin/ManageReports";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Navbar from "./components/Navbar";
+import PaymentReturn from "./pages/PaymentReturn";
+
 
 // Layout chung cho tất cả trang
 function Layout({ children }) {
@@ -50,14 +52,16 @@ export default function App() {
         }
       />
       <Route
-        path="/checkout/:rentalId"
+        path="/checkout"
         element={
           <ProtectedRoute>
-            <Layout>
-              <Checkout />
-            </Layout>
+            <Layout><Checkout /></Layout>
           </ProtectedRoute>
         }
+      />
+      <Route
+        path="/payment/return"
+        element={<Layout><PaymentReturn /></Layout>}
       />
       <Route
         path="/profile"
