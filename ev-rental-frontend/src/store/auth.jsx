@@ -16,16 +16,18 @@ export function AuthProvider({ children }) {
             body: JSON.stringify({ email, password }),
         });
 
-        // backend trả: { ok: true, data: { user, token } }
-        const data = res.data;
-        if (!data || !data.user || !data.token) throw new Error("Login failed");
+        // backend trả { user, token }
+        if (res && res.user && res.token) {
+            setUser(res.user);
+            setToken(res.token);
+            localStorage.setItem("user", JSON.stringify(res.user));
+            localStorage.setItem("token", res.token);
+            return true;
+        }
 
-        setUser(data.user);
-        setToken(data.token);
-
-        localStorage.setItem("user", JSON.stringify(data.user));
-        localStorage.setItem("token", data.token);
+        return false;
     };
+
     const logout = async () => {
         await api.request("/auth/logout", { method: "POST" }).catch(() => { });
         setUser(null);

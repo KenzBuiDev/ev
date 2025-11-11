@@ -33,7 +33,7 @@ export default function ManageVehicles() {
             station_id: "",
             plate_no: "",
             model: "",
-            type: "Scooter",
+            type: "Evo",
             status: "Available",
             battery_percent: 100,
             odometer: 0

@@ -5,25 +5,22 @@ import { useAuth } from "../store/auth";
 export default function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [error, setError] = useState("");
     const { login } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        try {
-            await login(email, password);
-            navigate("/"); // login thành công → Home
-        } catch (err) {
-            console.error(err);
-            setError(err.message || "Login failed");
-        }
+        const success = await login(email, password);
+        navigate("/"); // redirect luôn, không hiển thị lỗi
     };
 
     return (
-        <form onSubmit={handleSubmit} style={{ maxWidth: 400, margin: "0 auto", padding: 16 }}>
+        <form
+            onSubmit={handleSubmit}
+            style={{ maxWidth: 400, margin: "0 auto", padding: 16 }}
+        >
             <h2>Login</h2>
-            {error && <p style={{ color: "red" }}>{error}</p>}
+
             <input
                 type="email"
                 placeholder="Email"
@@ -32,6 +29,7 @@ export default function Login() {
                 required
                 style={{ display: "block", width: "100%", marginBottom: 12, padding: 8 }}
             />
+
             <input
                 type="password"
                 placeholder="Password"
@@ -40,6 +38,7 @@ export default function Login() {
                 required
                 style={{ display: "block", width: "100%", marginBottom: 12, padding: 8 }}
             />
+
             <button type="submit" style={{ padding: "8px 16px" }}>Login</button>
         </form>
     );

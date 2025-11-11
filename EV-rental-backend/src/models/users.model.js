@@ -24,7 +24,7 @@ let users = [
   {
     user_id: "u003",
     full_name: "Le Van C",
-    email: "levanc@gmail.com",
+    email: "renter@gmail.com",
     phone: "0912345678",
     role: "renter",
     password: "123456",

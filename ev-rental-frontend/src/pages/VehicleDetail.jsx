@@ -24,7 +24,7 @@ export default function VehicleDetail() {
 
   // Tải thông tin xe (nếu BE có endpoint /vehicles/:id)
   useEffect(() => {
-    api.request(`/vehicles/${id}`).then(setVehicle).catch(() => {});
+    api.request(`/vehicles/${id}`).then(setVehicle).catch(() => { });
   }, [id]);
 
   async function handleQuote() {
@@ -97,6 +97,7 @@ export default function VehicleDetail() {
             onChange={(e) => setStartTime(e.target.value)}
           />
         </label>
+        <p></p>
         <label>
           Giờ kết thúc:
           <input
@@ -115,22 +116,24 @@ export default function VehicleDetail() {
         </div>
       </div>
 
-      {quote && (
-        <>
-          <h4 style={{ marginTop: 16 }}>Báo giá</h4>
-          <p>Thời gian: {quote.hours} giờ</p>
-          <p>
-            Đơn giá: {Number(quote.price_per_hour).toLocaleString("vi-VN")}{" "}
-            {quote.currency || "VNĐ"}/{quote.billing_unit || "giờ"}
-          </p>
-          <p>
-            Tổng cộng:{" "}
-            <b>
-              {Number(quote.amount).toLocaleString("vi-VN")} {quote.currency || "VNĐ"}
-            </b>
-          </p>
-        </>
-      )}
-    </div>
+      {
+        quote && (
+          <>
+            <h4 style={{ marginTop: 16 }}>Báo giá</h4>
+            <p>Thời gian: {quote.hours} giờ</p>
+            <p>
+              Đơn giá: {Number(quote.price_per_hour).toLocaleString("vi-VN")}{" "}
+              {quote.currency || "VNĐ"}/{quote.billing_unit || "giờ"}
+            </p>
+            <p>
+              Tổng cộng:{" "}
+              <b>
+                {Number(quote.amount).toLocaleString("vi-VN")} {quote.currency || "VNĐ"}
+              </b>
+            </p>
+          </>
+        )
+      }
+    </div >
   );
 }
