@@ -23,7 +23,7 @@ module.exports = [
     status: "Rented",
     battery_percent: 10,
     odometer: 500,
-    price_per_hour: 20000,
+    price_per_hour: 30000,
     currency: "VND",
     billing_unit: "hour",
   },
@@ -36,7 +36,7 @@ module.exports = [
     status: "Maintenance",
     battery_percent: 50,
     odometer: 3000,
-    price_per_hour: 20000,
+    price_per_hour: 50000,
     currency: "VND",
     billing_unit: "hour",
   }
