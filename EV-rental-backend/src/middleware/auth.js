@@ -1,10 +1,11 @@
 // src/middleware/auth.js
 const { verifyAccess } = require("../utils/jwt");
 const User = require("../models/User");
+const { requireRole } = require("./authorize");
 
 // Middleware xác thực JWT.
 // Sau khi xác thực → req.user = { user_id, role, email, full_name }
-module.exports = async (req, res, next) => {
+const requireAuth = async (req, res, next) => {
   try {
     const header = req.headers.authorization || "";
     const token = header.startsWith("Bearer ") ? header.slice(7) : null;
@@ -44,3 +45,8 @@ module.exports = async (req, res, next) => {
     });
   }
 };
+
+// Giữ tương thích với cả import default và destructuring
+module.exports = requireAuth;
+module.exports.requireAuth = requireAuth;
+module.exports.requireRole = requireRole;
