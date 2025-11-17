@@ -1,39 +1,57 @@
-const stations = require("../models/stations.model");
+const Station = require("../models/Station");
+const { nextId } = require("../utils/idHelper");
 
-exports.list = (req, res) => {
-  const { q } = req.query;
-  let data = stations;
-  if (q) data = data.filter(s => s.name.toLowerCase().includes(q.toLowerCase()));
-  res.json(data);
+exports.getAll = async (req, res) => {
+  try {
+    const docs = await Station.find().lean();
+    res.json(docs);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
 };
 
-exports.getById = (req, res) => {
-  const item = stations.find(s => s.id === req.params.id);
-  if (!item) return res.status(404).json({ error: 'Station not found' });
-  res.json(item);
+exports.getById = async (req, res) => {
+  try {
+    const doc = await Station.findOne({ station_id: req.params.id }).lean();
+    if (!doc) return res.status(404).json({ message: "Station not found" });
+    res.json(doc);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
 };
 
-exports.create = (req, res) => {
-  const { name, address, lat, lng, isOpen = true } = req.body || {};
-  if (!name || !address || lat == null || lng == null)
-    return res.status(400).json({ error: 'name, address, lat, lng are required' });
-
-  const id = `st_${Date.now()}`;
-  const created = { id, name, address, lat, lng, isOpen };
-  stations.push(created);
-  res.status(201).json(created);
+exports.create = async (req, res) => {
+  try {
+    const data = req.body;
+    data.station_id =
+      data.station_id || (await nextId(Station, "st_", "station_id"));
+    const doc = await Station.create(data);
+    res.status(201).json(doc);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
 };
 
-exports.update = (req, res) => {
-  const idx = stations.findIndex(s => s.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Station not found' });
-  stations[idx] = { ...stations[idx], ...req.body, id: stations[idx].id };
-  res.json(stations[idx]);
+exports.update = async (req, res) => {
+  try {
+    const doc = await Station.findOneAndUpdate(
+      { station_id: req.params.id },
+      req.body,
+      { new: true }
+    );
+    if (!doc) return res.status(404).json({ message: "Station not found" });
+    res.json(doc);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
 };
 
-exports.remove = (req, res) => {
-  const idx = stations.findIndex(s => s.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Station not found' });
-  stations.splice(idx, 1);
-  res.status(204).end();
+exports.remove = async (req, res) => {
+  try {
+    const doc = await Station.findOneAndDelete({ station_id: req.params.id });
+    if (!doc) return res.status(404).json({ message: "Station not found" });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
 };

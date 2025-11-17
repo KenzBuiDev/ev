@@ -1,23 +1,22 @@
 // src/controllers/main.controller.js
 const pkg = require("../../package.json");
 
-// Import tất cả các model cần thiết để tổng hợp dữ liệu
-const users = require("../models/users.model");
-const stations = require("../models/stations.model");
-const vehicles = require("../models/vehicles.model");
-const vehicleImages = require("../models/vehicleImages.model");
-const batteryLogs = require("../models/batteryLogs.model");
-const renterProfiles = require("../models/renterProfiles.model");
-const staffProfiles = require("../models/staffProfiles.model");
-const reservations = require("../models/reservations.model");
-const rentals = require("../models/rentals.model");
-const rentalPhotos = require("../models/rentalPhotos.model");
-const handovers = require("../models/handovers.model");
-const userDocs = require("../models/userDocs.model");
-const verifications = require("../models/verifications.model");
-const payments = require("../models/payments.model");
-const damageReports = require("../models/damageReports.model");
-
+// Import Mongoose models
+const User = require("../models/User");
+const Station = require("../models/Station");
+const Vehicle = require("../models/Vehicle");
+const VehicleImage = require("../models/VehicleImage");
+const BatteryLog = require("../models/BatteryLog");
+const RenterProfile = require("../models/RenterProfile");
+const StaffProfile = require("../models/StaffProfile");
+const Reservation = require("../models/Reservation");
+const Rental = require("../models/Rental");
+const RentalPhoto = require("../models/RentalPhoto");
+const Handover = require("../models/Handover");
+const UserDoc = require("../models/UserDoc");
+const Verification = require("../models/Verification");
+const Payment = require("../models/Payment");
+const DamageReport = require("../models/DamageReport");
 
 // ✅ Trang chào mừng
 exports.root = (req, res) => {
@@ -71,46 +70,127 @@ exports.routes = (req, res) => {
   });
 };
 
-// ✅ Tổng hợp dữ liệu tổng quan (dashboard summary)
-exports.summary = (req, res) => {
-  const summary = {
-    users: users.length,
-    stations: stations.length,
-    vehicles: vehicles.length,
-    vehicleImages: vehicleImages.length,
-    batteryLogs: batteryLogs.length,
-    renterProfiles: renterProfiles.length,
-    staffProfiles: staffProfiles.length,
-    reservations: reservations.length,
-    rentals: rentals.length,
-    rentalPhotos: rentalPhotos.length,
-    handovers: handovers.length,
-    userDocs: userDocs.length,
-    verifications: verifications.length,
-    payments: payments.length,
-    damageReports: damageReports.length,
-  };
+// ✅ Tổng hợp dữ liệu tổng quan (dashboard summary) – lấy từ Mongo
+exports.summary = async (req, res) => {
+  try {
+    const [
+      usersCount,
+      stationsCount,
+      vehiclesCount,
+      vehicleImagesCount,
+      batteryLogsCount,
+      renterProfilesCount,
+      staffProfilesCount,
+      reservationsCount,
+      rentalsCount,
+      rentalPhotosCount,
+      handoversCount,
+      userDocsCount,
+      verificationsCount,
+      paymentsCount,
+      damageReportsCount,
+    ] = await Promise.all([
+      User.countDocuments(),
+      Station.countDocuments(),
+      Vehicle.countDocuments(),
+      VehicleImage.countDocuments(),
+      BatteryLog.countDocuments(),
+      RenterProfile.countDocuments(),
+      StaffProfile.countDocuments(),
+      Reservation.countDocuments(),
+      Rental.countDocuments(),
+      RentalPhoto.countDocuments(),
+      Handover.countDocuments(),
+      UserDoc.countDocuments(),
+      Verification.countDocuments(),
+      Payment.countDocuments(),
+      DamageReport.countDocuments(),
+    ]);
 
-  res.json({ success: true, summary });
+    const summary = {
+      users: usersCount,
+      stations: stationsCount,
+      vehicles: vehiclesCount,
+      vehicleImages: vehicleImagesCount,
+      batteryLogs: batteryLogsCount,
+      renterProfiles: renterProfilesCount,
+      staffProfiles: staffProfilesCount,
+      reservations: reservationsCount,
+      rentals: rentalsCount,
+      rentalPhotos: rentalPhotosCount,
+      handovers: handoversCount,
+      userDocs: userDocsCount,
+      verifications: verificationsCount,
+      payments: paymentsCount,
+      damageReports: damageReportsCount,
+    };
+
+    res.json({ success: true, summary });
+  } catch (err) {
+    console.error("[main.summary] error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
 };
 
-// ✅ Thống kê nhanh theo trạng thái hoạt động
-exports.stats = (req, res) => {
-  const stats = {
-    activeUsers: users.filter(u => u.is_active).length,
-    availableVehicles: vehicles.filter(v => v.status === "Available").length,
-    rentedVehicles: vehicles.filter(v => v.status === "Rented").length,
-    maintenanceVehicles: vehicles.filter(v => v.status === "Maintenance").length,
-    pendingReservations: reservations.filter(r => r.status === "Pending").length,
-    confirmedReservations: reservations.filter(r => r.status === "Confirmed").length,
-    ongoingRentals: rentals.filter(r => r.status === "Ongoing").length,
-    completedRentals: rentals.filter(r => r.status === "Completed").length,
-    verifiedDocs: userDocs.filter(d => d.status === "Verified").length,
-    pendingVerifications: verifications.filter(v => v.result === "Pending").length,
-    totalPayments: payments.length,
-    successfulPayments: payments.filter(p => p.status === "Success").length,
-    pendingDamageReports: damageReports.filter(r => r.status !== "Resolved").length,
-  };
+// ✅ Thống kê nhanh theo trạng thái hoạt động – lấy từ Mongo
+exports.stats = async (req, res) => {
+  try {
+    const [
+      activeUsers,
+      availableVehicles,
+      rentedVehicles,
+      maintenanceVehicles,
+      pendingReservations,
+      confirmedReservations,
+      ongoingRentals,
+      completedRentals,
+      verifiedDocs,
+      pendingVerifications,
+      totalPayments,
+      successfulPayments,
+      pendingDamageReports,
+    ] = await Promise.all([
+      User.countDocuments({ is_active: true }),
+      Vehicle.countDocuments({ status: "Available" }),
+      Vehicle.countDocuments({ status: "Rented" }),
+      Vehicle.countDocuments({ status: "Maintenance" }),
 
-  res.json({ success: true, stats });
+      Reservation.countDocuments({ status: "Pending" }),
+      Reservation.countDocuments({ status: "Confirmed" }),
+
+      Rental.countDocuments({ status: "Ongoing" }),
+      Rental.countDocuments({ status: "Completed" }),
+
+      UserDoc.countDocuments({ status: "Verified" }),
+      // Trong data mẫu của bạn result = "Approved"/"Rejected",
+      // nếu sau này có "Pending" thì sẽ đếm được ở đây
+      Verification.countDocuments({ result: "Pending" }),
+
+      Payment.countDocuments(),
+      Payment.countDocuments({ status: "Success" }),
+
+      DamageReport.countDocuments({ status: { $ne: "Resolved" } }),
+    ]);
+
+    const stats = {
+      activeUsers,
+      availableVehicles,
+      rentedVehicles,
+      maintenanceVehicles,
+      pendingReservations,
+      confirmedReservations,
+      ongoingRentals,
+      completedRentals,
+      verifiedDocs,
+      pendingVerifications,
+      totalPayments,
+      successfulPayments,
+      pendingDamageReports,
+    };
+
+    res.json({ success: true, stats });
+  } catch (err) {
+    console.error("[main.stats] error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
 };

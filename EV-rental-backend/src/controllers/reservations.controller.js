@@ -1,65 +1,65 @@
-const reservations = require("../models/reservations.model");
-const { generateId } = require("../utils/generateId");
+// src/controllers/reservations.controller.js
+const Reservation = require("../models/Reservation");
+const Vehicle = require("../models/Vehicle");
 
-// GET /api/reservations?status=Pending&renter_id=r001
-exports.list = (req, res) => {
-  const { renter_id, vehicle_id, status, created_by_staff } = req.query;
-  let data = reservations;
-  if (renter_id) data = data.filter(r => r.renter_id === renter_id);
-  if (vehicle_id) data = data.filter(r => r.vehicle_id === vehicle_id);
-  if (status) data = data.filter(r => r.status.toLowerCase() === status.toLowerCase());
-  if (created_by_staff) data = data.filter(r => r.created_by_staff === created_by_staff);
-  res.json(data);
-};
+// tính tiền
+function calcQuote(vehicle, start_time, end_time) {
+  const start = new Date(start_time);
+  let end = new Date(end_time);
+  if (end <= start) end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
+  const ms = end - start;
+  const hours = Math.ceil(ms / 3600000);
+  const price = Number(vehicle.price_per_hour || 0);
+  const amount = hours * price;
+  return { hours, amount, price_per_hour: price };
+}
 
 // GET /api/reservations/:id
-exports.getById = (req, res) => {
-  const item = reservations.find(r => r.reservation_id === req.params.id);
-  if (!item) return res.status(404).json({ error: "Reservation not found" });
-  res.json(item);
+exports.getById = async (req, res) => {
+  try {
+    const r = await Reservation.findOne({
+      reservation_id: req.params.id,
+    }).lean();
+    if (!r) return res.status(404).json({ message: "Reservation not found" });
+    res.json(r);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
 
 // POST /api/reservations
-exports.create = (req, res) => {
-  const { renter_id, vehicle_id, start_time, end_time, status, hold_deposit, created_by_staff } = req.body || {};
-  if (!renter_id || !vehicle_id || !start_time || !end_time)
-    return res.status(400).json({ error: "renter_id, vehicle_id, start_time, end_time là bắt buộc" });
+exports.create = async (req, res) => {
+  try {
+    const { vehicle_id, start_time, end_time } = req.body;
+    const vehicle = await Vehicle.findOne({ vehicle_id }).lean();
+    if (!vehicle)
+      return res.status(404).json({ message: "Vehicle not found" });
 
-  const reservation_id = generateId("rsv");
-  const created = {
-    reservation_id, renter_id, vehicle_id, start_time, end_time,
-    status: status || "Pending",
-    hold_deposit: hold_deposit || "500000 VND",
-    created_by_staff: created_by_staff || null
-  };
-  reservations.push(created);
-  res.status(201).json(created);
-};
+    const { hours, amount } = calcQuote(vehicle, start_time, end_time);
 
-// PATCH /api/reservations/:id
-exports.update = (req, res) => {
-  const idx = reservations.findIndex(r => r.reservation_id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Reservation not found" });
-  reservations[idx] = { ...reservations[idx], ...req.body };
-  res.json(reservations[idx]);
-};
+    const count = await Reservation.countDocuments();
+    const reservation_id = `rsv${(count + 1)
+      .toString()
+      .padStart(3, "0")}`;
 
-// PATCH /api/reservations/:id/status
-exports.updateStatus = (req, res) => {
-  const idx = reservations.findIndex(r => r.reservation_id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Reservation not found" });
-  const { status } = req.body || {};
-  const valid = ["Pending", "Confirmed", "Cancelled", "Completed"];
-  if (!status || !valid.includes(status))
-    return res.status(400).json({ error: `Trạng thái phải là: ${valid.join(", ")}` });
-  reservations[idx].status = status;
-  res.json(reservations[idx]);
-};
+    const renter_id =
+      req.user?.renter_id || req.user?.user_id || "r001"; // tuỳ cách map của bạn
 
-// DELETE /api/reservations/:id
-exports.remove = (req, res) => {
-  const idx = reservations.findIndex(r => r.reservation_id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Reservation not found" });
-  reservations.splice(idx, 1);
-  res.status(204).end();
+    const doc = await Reservation.create({
+      reservation_id,
+      renter_id,
+      vehicle_id,
+      start_time,
+      end_time,
+      status: "Confirmed",
+      hold_deposit: "500000 VND",
+      created_by_staff: req.user?.role === "staff" ? req.user.user_id : null,
+      estimated_amount: amount,
+      currency: "VND",
+    });
+
+    res.status(201).json(doc);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
 };

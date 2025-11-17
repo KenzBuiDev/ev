@@ -1,26 +1,15 @@
+// src/routes/vehicles.routes.js
 const express = require("express");
 const router = express.Router();
-const ctrl = require("../controllers/vehicles.controller");
-const auth = require("../middleware/auth");
-const { requireRole, requireStaffStationScope, requireVehicleInMyStation } = require("../middleware/authorize");
+const vehicles = require("../controllers/vehicles.controller");
+const { requireAuth, requireRole } = require("../middleware/auth");
 
-// GET mở
-router.get("/", ctrl.list);
-router.get("/:id", ctrl.getById);
+// public xem danh sách xe
+router.get("/", vehicles.getAll);
+router.get("/:id", vehicles.getById);
 
-// Create: admin hoặc staff (staff: chỉ được tạo trong station của mình)
-router.post(
-  "/",
-  auth,
-  (req, res, next) =>
-    req.user.role === "admin"
-      ? next()
-      : requireStaffStationScope((req2) => req2.body.station_id)(req, res, next),
-  ctrl.create
-);
-
-// Update/Delete: admin hoặc staff trong station của mình
-router.patch("/:id", auth, requireVehicleInMyStation(), ctrl.update);
-router.delete("/:id", auth, requireVehicleInMyStation(), ctrl.remove);
+// staff/admin quản lý
+router.post("/", requireAuth, requireRole("admin", "staff"), vehicles.create);
+router.put("/:id", requireAuth, requireRole("admin", "staff"), vehicles.update);
 
 module.exports = router;

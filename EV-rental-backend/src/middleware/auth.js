@@ -1,25 +1,31 @@
 // src/middleware/auth.js
 const { verifyAccess } = require("../utils/jwt");
-const users = require("../models/users.model");
+const User = require("../models/User");
 
-// Middleware xác thực JWT. Sau khi xác thực,
-// gắn req.user = { user_id, role, email, full_name }
-module.exports = (req, res, next) => {
+// Middleware xác thực JWT.
+// Sau khi xác thực → req.user = { user_id, role, email, full_name }
+module.exports = async (req, res, next) => {
   try {
     const header = req.headers.authorization || "";
     const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+
     if (!token) {
-      return res
-        .status(401)
-        .json({ success: false, error: { code: 401, message: "Missing token" } });
+      return res.status(401).json({
+        success: false,
+        error: { code: 401, message: "Missing token" },
+      });
     }
 
     const decoded = verifyAccess(token); // { user_id, role, ... }
-    const user = users.find((u) => u.user_id === decoded.user_id);
+
+    // 🔥 Lấy user từ Mongo thay cho seed
+    const user = await User.findOne({ user_id: decoded.user_id }).lean();
+
     if (!user) {
-      return res
-        .status(401)
-        .json({ success: false, error: { code: 401, message: "Invalid user" } });
+      return res.status(401).json({
+        success: false,
+        error: { code: 401, message: "Invalid user" },
+      });
     }
 
     req.user = {
@@ -28,10 +34,13 @@ module.exports = (req, res, next) => {
       email: user.email,
       full_name: user.full_name,
     };
+
     next();
   } catch (e) {
-    return res
-      .status(401)
-      .json({ success: false, error: { code: 401, message: "Invalid or expired token" } });
+    console.error("[auth middleware]", e);
+    return res.status(401).json({
+      success: false,
+      error: { code: 401, message: "Invalid or expired token" },
+    });
   }
 };

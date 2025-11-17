@@ -1,16 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const ctrl = require("../controllers/vehicleImages.controller");
-const auth = require("../middleware/auth");
-const { requireRole } = require("../middleware/authorize");
+const { requireAuth, requireRole } = require("../middleware/auth");
 
-// GET mở
-router.get("/", ctrl.list);
+router.get("/", ctrl.getAll);
 router.get("/:id", ctrl.getById);
-
-// Tạo/Sửa/Xoá: admin hoặc staff
-router.post("/", auth, requireRole("admin", "staff"), ctrl.create);
-router.patch("/:id", auth, requireRole("admin", "staff"), ctrl.update);
-router.delete("/:id", auth, requireRole("admin", "staff"), ctrl.remove);
+router.post("/", requireAuth, requireRole("admin", "staff"), ctrl.create);
+router.put("/:id", requireAuth, requireRole("admin", "staff"), ctrl.update);
+router.delete("/:id", requireAuth, requireRole("admin", "staff"), ctrl.remove);
 
 module.exports = router;

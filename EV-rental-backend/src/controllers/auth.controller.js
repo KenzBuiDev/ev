@@ -1,99 +1,159 @@
 // src/controllers/auth.controller.js
 const bcrypt = require("bcryptjs");
-const users = require("../models/users.model");
-const { signAccess, signRefresh, verifyRefresh } = require("../utils/jwt");
-const { ok, created, err } = require("../utils/response");
+const jwt = require("jsonwebtoken");
+const User = require("../models/User"); // Mongoose model User
 
-// simple in-memory blacklist cho refresh token (tuỳ chọn)
-const revokedRefreshTokens = new Set();
+const JWT_SECRET = process.env.JWT_SECRET || "devsecret";
 
-const cookieOpts = {
-  httpOnly: true,
-  sameSite: "lax",
-  secure: process.env.NODE_ENV === "production",
-  path: "/",
-};
+// Tạo access token từ user
+function signAccess(user) {
+  return jwt.sign(
+    {
+      user_id: user.user_id,
+      role: user.role,
+      email: user.email,
+    },
+    JWT_SECRET,
+    { expiresIn: "12h" }
+  );
+}
 
-exports.login = async (req, res) => {
-  try {
-    const { email, password } = req.body || {};
-    if (!email || !password) return err(res, 400, "email, password are required");
-
-    const user = users.find(u => u.email === email);
-    if (!user) return err(res, 401, "Invalid email or password");
-
-    const hashed = user.password && user.password.startsWith("$2");
-    const passOk = hashed ? await bcrypt.compare(password, user.password)
-      : (password === user.password);
-    if (!passOk) return err(res, 401, "Invalid email or password");
-
-    const payload = { user_id: user.user_id, role: user.role };
-    const accessToken = signAccess(payload);
-    const refreshToken = signRefresh(payload);
-
-    // set refresh token vào cookie httpOnly
-    res.cookie("rt", refreshToken, { ...cookieOpts, maxAge: 7 * 24 * 60 * 60 * 1000 });
-
-    return ok(res, {
-      token: accessToken,
-      user: { user_id: user.user_id, full_name: user.full_name, email: user.email, role: user.role }
-    });
-  } catch (e) {
-    console.error(e);
-    return err(res);
-  }
-};
-
-exports.me = (req, res) => {
-  return ok(res, req.user);
-};
-
-exports.refresh = (req, res) => {
-  try {
-    const rt = req.cookies?.rt;
-    if (!rt) return err(res, 401, "Missing refresh token");
-    if (revokedRefreshTokens.has(rt)) return err(res, 401, "Refresh token revoked");
-
-    const decoded = verifyRefresh(rt);
-    const accessToken = signAccess({ user_id: decoded.user_id, role: decoded.role });
-
-    return ok(res, { token: accessToken });
-  } catch (e) {
-    return err(res, 401, "Invalid or expired refresh token");
-  }
-};
-
-exports.logout = (req, res) => {
-  const rt = req.cookies?.rt;
-  if (rt) revokedRefreshTokens.add(rt); // tuỳ chọn: thu hồi refresh token hiện tại
-  res.clearCookie("rt", { ...cookieOpts });
-  return ok(res, { message: "Logged out" });
-};
-
-// (tuỳ chọn) đăng ký có hash
+// Đăng ký (tuỳ, nếu bạn có dùng)
 exports.register = async (req, res) => {
   try {
-    const { full_name, email, password, phone, role } = req.body || {};
-    if (!full_name || !email || !password) return err(res, 400, "full_name, email, password are required");
-    if (users.some(u => u.email === email)) return err(res, 400, "Email already exists");
+    const { email, password, full_name, role } = req.body;
 
-    const bcryptHash = await bcrypt.hash(password, 10);
-    const { generateId } = require("../utils/generateId");
-    const user_id = generateId("u");
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Email và password là bắt buộc" });
+    }
 
-    const newUser = {
-      user_id, full_name, email,
-      phone: phone || null, role: role || "renter",
-      password: bcryptHash,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      is_active: true
-    };
-    users.push(newUser);
+    const exists = await User.findOne({ email }).lean();
+    if (exists) {
+      return res
+        .status(409)
+        .json({ success: false, message: "Email đã được đăng ký" });
+    }
 
-    created(res, { user_id });
-  } catch (e) {
-    console.error(e);
-    return err(res);
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // user_id có thể là u00x, bạn tuỳ cách generate
+    const userCount = await User.countDocuments();
+    const user_id = `u${String(userCount + 1).padStart(3, "0")}`;
+
+    const user = await User.create({
+      user_id,
+      full_name: full_name || email,
+      email,
+      role: role || "renter",
+      passwordHash,
+      is_active: true,
+      created_at: new Date(),
+      updated_at: new Date(),
+    });
+
+    return res.json({
+      success: true,
+      user: {
+        user_id: user.user_id,
+        email: user.email,
+        role: user.role,
+        full_name: user.full_name,
+      },
+    });
+  } catch (err) {
+    console.error("[auth.register] error:", err);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal error", error: err.message });
+  }
+};
+
+// Đăng nhập
+exports.login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Email và password là bắt buộc" });
+    }
+
+    const user = await User.findOne({ email }).lean();
+    if (!user) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Sai email hoặc mật khẩu" });
+    }
+
+    // Hỗ trợ cả 2 kiểu:
+    // - user.passwordHash (mã hoá)
+    // - user.password (plain text cũ trong sample)
+    let ok = false;
+    if (user.passwordHash) {
+      ok = await bcrypt.compare(password, user.passwordHash);
+    } else if (user.password) {
+      ok = password === user.password;
+    }
+
+    if (!ok) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Sai email hoặc mật khẩu" });
+    }
+
+    const token = signAccess(user);
+
+    return res.json({
+      success: true,
+      token,
+      user: {
+        user_id: user.user_id,
+        email: user.email,
+        role: user.role,
+        full_name: user.full_name,
+      },
+    });
+  } catch (err) {
+    console.error("[auth.login] error:", err);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal error", error: err.message });
+  }
+};
+
+// Lấy info user hiện tại (dùng sau middleware auth.js đã verify token)
+exports.me = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Unauthorized" });
+    }
+
+    const user = await User.findOne({ user_id: req.user.user_id }).lean();
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    return res.json({
+      success: true,
+      user: {
+        user_id: user.user_id,
+        email: user.email,
+        role: user.role,
+        full_name: user.full_name,
+        is_active: user.is_active,
+      },
+    });
+  } catch (err) {
+    console.error("[auth.me] error:", err);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal error", error: err.message });
   }
 };

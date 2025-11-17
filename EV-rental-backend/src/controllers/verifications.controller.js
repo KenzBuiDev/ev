@@ -1,50 +1,62 @@
-const verifications = require("../models/verifications.model");
-const { generateId } = require("../utils/generateId");
+const Verification = require("../models/Verification");
+const { nextId } = require("../utils/idHelper");
 
-// GET /api/verifications?doc_id=d001&staff_id=s001&result=Approved
-exports.list = (req, res) => {
-  const { doc_id, staff_id, result } = req.query;
-  let data = verifications;
-  if (doc_id) data = data.filter(v => v.doc_id === doc_id);
-  if (staff_id) data = data.filter(v => v.staff_id === staff_id);
-  if (result) data = data.filter(v => v.result.toLowerCase() === result.toLowerCase());
-  res.json(data);
+exports.getAll = async (req, res) => {
+  try {
+    const docs = await Verification.find().lean();
+    res.json(docs);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
 };
 
-// GET /api/verifications/:id
-exports.getById = (req, res) => {
-  const verification = verifications.find(v => v.verification_id === req.params.id);
-  if (!verification) return res.status(404).json({ error: "Verification not found" });
-  res.json(verification);
+exports.getById = async (req, res) => {
+  try {
+    const doc = await Verification.findOne({
+      verification_id: req.params.id,
+    }).lean();
+    if (!doc) return res.status(404).json({ message: "Verification not found" });
+    res.json(doc);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
 };
 
-// POST /api/verifications
-exports.create = (req, res) => {
-  const { doc_id, staff_id, result, notes } = req.body || {};
-  if (!doc_id || !staff_id || !result)
-    return res.status(400).json({ error: "doc_id, staff_id, result là bắt buộc" });
-
-  const verification_id = generateId("vfx");
-  const created = {
-    verification_id, doc_id, staff_id, result, notes: notes || "",
-    verified_at: new Date().toISOString()
-  };
-  verifications.push(created);
-  res.status(201).json(created);
+exports.create = async (req, res) => {
+  try {
+    const data = req.body;
+    data.verification_id =
+      data.verification_id ||
+      (await nextId(Verification, "vfx", "verification_id"));
+    const doc = await Verification.create(data);
+    res.status(201).json(doc);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
 };
 
-// PATCH /api/verifications/:id
-exports.update = (req, res) => {
-  const idx = verifications.findIndex(v => v.verification_id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Verification not found" });
-  verifications[idx] = { ...verifications[idx], ...req.body };
-  res.json(verifications[idx]);
+exports.update = async (req, res) => {
+  try {
+    const doc = await Verification.findOneAndUpdate(
+      { verification_id: req.params.id },
+      req.body,
+      { new: true }
+    );
+    if (!doc) return res.status(404).json({ message: "Verification not found" });
+    res.json(doc);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
 };
 
-// DELETE /api/verifications/:id
-exports.remove = (req, res) => {
-  const idx = verifications.findIndex(v => v.verification_id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Verification not found" });
-  verifications.splice(idx, 1);
-  res.status(204).end();
+exports.remove = async (req, res) => {
+  try {
+    const doc = await Verification.findOneAndDelete({
+      verification_id: req.params.id,
+    });
+    if (!doc) return res.status(404).json({ message: "Verification not found" });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
 };

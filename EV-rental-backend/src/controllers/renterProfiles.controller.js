@@ -1,44 +1,61 @@
-const renterProfiles = require("../models/renterProfiles.model");
-const { generateId } = require("../utils/generateId");
+const RenterProfile = require("../models/RenterProfile");
+const { nextId } = require("../utils/idHelper");
 
-// GET /api/renter-profiles?user_id=u003
-exports.list = (req, res) => {
-  const { user_id } = req.query;
-  const data = user_id ? renterProfiles.filter(p => p.user_id === user_id) : renterProfiles;
-  res.json(data);
+exports.getAll = async (req, res) => {
+  try {
+    const docs = await RenterProfile.find().lean();
+    res.json(docs);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
 };
 
-// GET /api/renter-profiles/:id
-exports.getById = (req, res) => {
-  const item = renterProfiles.find(p => p.renter_id === req.params.id);
-  if (!item) return res.status(404).json({ error: "Renter profile not found" });
-  res.json(item);
+exports.getById = async (req, res) => {
+  try {
+    const doc = await RenterProfile.findOne({
+      renter_id: req.params.id,
+    }).lean();
+    if (!doc) return res.status(404).json({ message: "Renter profile not found" });
+    res.json(doc);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
 };
 
-// POST /api/renter-profiles
-exports.create = (req, res) => {
-  const { user_id, dob, driver_license_no, address, risk_level = "Low" } = req.body || {};
-  if (!user_id || !dob || !driver_license_no || !address)
-    return res.status(400).json({ error: "user_id, dob, driver_license_no, address là bắt buộc" });
-
-  const renter_id = generateId("r");
-  const created = { renter_id, user_id, dob, driver_license_no, address, risk_level };
-  renterProfiles.push(created);
-  res.status(201).json(created);
+exports.create = async (req, res) => {
+  try {
+    const data = req.body;
+    data.renter_id =
+      data.renter_id || (await nextId(RenterProfile, "r", "renter_id"));
+    const doc = await RenterProfile.create(data);
+    res.status(201).json(doc);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
 };
 
-// PATCH /api/renter-profiles/:id
-exports.update = (req, res) => {
-  const idx = renterProfiles.findIndex(p => p.renter_id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Renter profile not found" });
-  renterProfiles[idx] = { ...renterProfiles[idx], ...req.body, renter_id: renterProfiles[idx].renter_id };
-  res.json(renterProfiles[idx]);
+exports.update = async (req, res) => {
+  try {
+    const doc = await RenterProfile.findOneAndUpdate(
+      { renter_id: req.params.id },
+      req.body,
+      { new: true }
+    );
+    if (!doc) return res.status(404).json({ message: "Renter profile not found" });
+    res.json(doc);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
 };
 
-// DELETE /api/renter-profiles/:id
-exports.remove = (req, res) => {
-  const idx = renterProfiles.findIndex(p => p.renter_id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Renter profile not found" });
-  renterProfiles.splice(idx, 1);
-  res.status(204).end();
+exports.remove = async (req, res) => {
+  try {
+    const doc = await RenterProfile.findOneAndDelete({
+      renter_id: req.params.id,
+    });
+    if (!doc) return res.status(404).json({ message: "Renter profile not found" });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
 };

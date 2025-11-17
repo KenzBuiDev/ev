@@ -1,16 +1,13 @@
 const express = require("express");
 const router = express.Router();
 const ctrl = require("../controllers/stations.controller");
-const auth = require("../middleware/auth");
-const { requireRole } = require("../middleware/authorize");
+const { requireAuth, requireRole } = require("../middleware/auth");
 
-// GET mở (hoặc bật auth nếu muốn)
-router.get("/", ctrl.list);
+router.get("/", ctrl.getAll);
 router.get("/:id", ctrl.getById);
 
-// Admin CRUD
-router.post("/", auth, requireRole("admin"), ctrl.create);
-router.patch("/:id", auth, requireRole("admin"), ctrl.update);
-router.delete("/:id", auth, requireRole("admin"), ctrl.remove);
+router.post("/", requireAuth, requireRole("admin", "staff"), ctrl.create);
+router.put("/:id", requireAuth, requireRole("admin", "staff"), ctrl.update);
+router.delete("/:id", requireAuth, requireRole("admin"), ctrl.remove);
 
 module.exports = router;

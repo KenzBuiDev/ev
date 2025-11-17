@@ -1,51 +1,62 @@
 // src/controllers/users.controller.js
-const users = require("../models/users.model");
-const { generateId } = require("../utils/generateId");
+const User = require("../models/User");
 
-exports.list = (req, res) => {
-  const { role } = req.query;
-  const data = role ? users.filter(u => u.role === role) : users;
-  res.json(data);
+// GET /api/users
+exports.getAll = async (req, res) => {
+  try {
+    const users = await User.find().lean();
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
 
-exports.getById = (req, res) => {
-  const user = users.find(u => u.user_id === req.params.id);
-  if (!user) return res.status(404).json({ error: "User not found" });
-  res.json(user);
+// GET /api/users/:id (user_id)
+exports.getById = async (req, res) => {
+  try {
+    const user = await User.findOne({ user_id: req.params.id }).lean();
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
 
-exports.create = (req, res) => {
-  const { full_name, email, phone, role, password } = req.body || {};
-  if (!full_name || !email || !password)
-    return res.status(400).json({ error: "Thiếu thông tin bắt buộc" });
-
-  const user_id = generateId("u");
-  const newUser = {
-    user_id,
-    full_name,
-    email,
-    phone,
-    role: role || "renter",
-    password,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    is_active: true
-  };
-  users.push(newUser);
-  res.status(201).json(newUser);
+// POST /api/users
+exports.create = async (req, res) => {
+  try {
+    const data = req.body;
+    const count = await User.countDocuments();
+    data.user_id = data.user_id || `u${(count + 1).toString().padStart(3, "0")}`;
+    const user = await User.create(data);
+    res.status(201).json(user);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
 };
 
-exports.update = (req, res) => {
-  const idx = users.findIndex(u => u.user_id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "User not found" });
-
-  users[idx] = { ...users[idx], ...req.body, updated_at: new Date().toISOString() };
-  res.json(users[idx]);
+// PUT /api/users/:id
+exports.update = async (req, res) => {
+  try {
+    const user = await User.findOneAndUpdate(
+      { user_id: req.params.id },
+      req.body,
+      { new: true }
+    );
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
 };
 
-exports.remove = (req, res) => {
-  const idx = users.findIndex(u => u.user_id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "User not found" });
-  users.splice(idx, 1);
-  res.status(204).end();
+// DELETE /api/users/:id
+exports.remove = async (req, res) => {
+  try {
+    const result = await User.findOneAndDelete({ user_id: req.params.id });
+    if (!result) return res.status(404).json({ message: "User not found" });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };

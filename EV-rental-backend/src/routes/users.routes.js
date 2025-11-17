@@ -1,22 +1,52 @@
+// src/routes/users.routes.js
 const express = require("express");
 const router = express.Router();
-const ctrl = require("../controllers/users.controller");
-const auth = require("../middleware/auth");
+
+const users = require("../controllers/users.controller");
+
+// Middleware
+const requireAuth = require("../middleware/auth");
 const { requireRole, requireSelfOrRole } = require("../middleware/authorize");
 
-// Admin: list
-router.get("/", auth, requireRole("admin"), ctrl.list);
+// ==========================
+//   USER ROUTES + ROLE RULES
+// ==========================
+//
+// Admin:
+//   - GET all users
+//   - CREATE user
+//   - DELETE user
+//
+// Staff:
+//   - GET/UPDATE only chính mình
+//
+// Renter:
+//   - GET/UPDATE only chính mình
+//
 
-// Self hoặc Admin (Staff chỉ self)
-router.get("/:id", auth, requireSelfOrRole((req) => req.params.id, "admin"), ctrl.getById);
+// ADMIN: lấy toàn bộ user
+router.get("/", requireAuth, requireRole("admin"), users.getAll);
 
-// Create: admin
-router.post("/", auth, requireRole("admin"), ctrl.create);
+// ADMIN + SELF: lấy user theo id
+router.get(
+  "/:id",
+  requireAuth,
+  requireSelfOrRole((req) => req.params.id, "admin"),
+  users.getById
+);
 
-// Update: self hoặc admin
-router.patch("/:id", auth, requireSelfOrRole((req) => req.params.id, "admin"), ctrl.update);
+// ADMIN: tạo user
+router.post("/", requireAuth, requireRole("admin"), users.create);
 
-// Delete: admin
-router.delete("/:id", auth, requireRole("admin"), ctrl.remove);
+// ADMIN + SELF: cập nhật user
+router.put(
+  "/:id",
+  requireAuth,
+  requireSelfOrRole((req) => req.params.id, "admin"),
+  users.update
+);
+
+// ADMIN: xóa user
+router.delete("/:id", requireAuth, requireRole("admin"), users.remove);
 
 module.exports = router;

@@ -22,6 +22,7 @@ router.use("/handovers", require("./handovers.routes"));
 router.use("/user-docs", require("./userDocs.routes"));
 router.use("/verifications", require("./verifications.routes"));
 router.use("/payments", require("./payments.routes"));
+router.use("/payments-crud", require("./paymentsCrud.routes"));
 
 router.use("/damage-reports", require("./damageReports.routes")); // STAFF chỉ được xem
 

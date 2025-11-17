@@ -1,44 +1,61 @@
-const vehicleImages = require("../models/vehicleImages.model");
-const { generateId } = require("../utils/generateId");
+const VehicleImage = require("../models/VehicleImage");
+const { nextId } = require("../utils/idHelper");
 
-// GET /api/vehicle-images?vehicle_id=v001
-exports.list = (req, res) => {
-  const { vehicle_id } = req.query;
-  const data = vehicle_id ? vehicleImages.filter(i => i.vehicle_id === vehicle_id) : vehicleImages;
-  res.json(data);
+exports.getAll = async (req, res) => {
+  try {
+    const docs = await VehicleImage.find().lean();
+    res.json(docs);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
 };
 
-// GET /api/vehicle-images/:id
-exports.getById = (req, res) => {
-  const image = vehicleImages.find(i => i.image_id === req.params.id);
-  if (!image) return res.status(404).json({ error: "Vehicle image not found" });
-  res.json(image);
+exports.getById = async (req, res) => {
+  try {
+    const doc = await VehicleImage.findOne({
+      image_id: req.params.id,
+    }).lean();
+    if (!doc) return res.status(404).json({ message: "Vehicle image not found" });
+    res.json(doc);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
 };
 
-// POST /api/vehicle-images
-exports.create = (req, res) => {
-  const { vehicle_id, url, caption } = req.body || {};
-  if (!vehicle_id || !url) return res.status(400).json({ error: "vehicle_id, url là bắt buộc" });
-
-  const image_id = generateId("i");
-  const created_at = new Date().toISOString();
-  const created = { image_id, vehicle_id, url, caption: caption || "", created_at };
-  vehicleImages.push(created);
-  res.status(201).json(created);
+exports.create = async (req, res) => {
+  try {
+    const data = req.body;
+    data.image_id =
+      data.image_id || (await nextId(VehicleImage, "i", "image_id"));
+    const doc = await VehicleImage.create(data);
+    res.status(201).json(doc);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
 };
 
-// PATCH /api/vehicle-images/:id
-exports.update = (req, res) => {
-  const idx = vehicleImages.findIndex(i => i.image_id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Vehicle image not found" });
-  vehicleImages[idx] = { ...vehicleImages[idx], ...req.body };
-  res.json(vehicleImages[idx]);
+exports.update = async (req, res) => {
+  try {
+    const doc = await VehicleImage.findOneAndUpdate(
+      { image_id: req.params.id },
+      req.body,
+      { new: true }
+    );
+    if (!doc) return res.status(404).json({ message: "Vehicle image not found" });
+    res.json(doc);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
 };
 
-// DELETE /api/vehicle-images/:id
-exports.remove = (req, res) => {
-  const idx = vehicleImages.findIndex(i => i.image_id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Vehicle image not found" });
-  vehicleImages.splice(idx, 1);
-  res.status(204).end();
+exports.remove = async (req, res) => {
+  try {
+    const doc = await VehicleImage.findOneAndDelete({
+      image_id: req.params.id,
+    });
+    if (!doc) return res.status(404).json({ message: "Vehicle image not found" });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
 };

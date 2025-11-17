@@ -1,82 +1,61 @@
-const damageReports = require("../models/damageReports.model");
-const { generateId } = require("../utils/generateId");
+const DamageReport = require("../models/DamageReport");
+const { nextId } = require("../utils/idHelper");
 
-// GET /api/damage-reports?status=Pending Staff Review&vehicle_id=v001
-exports.list = (req, res) => {
-  const { rental_id, vehicle_id, reported_by, status } = req.query;
-  let data = damageReports;
-  if (rental_id) data = data.filter(r => r.rental_id === rental_id);
-  if (vehicle_id) data = data.filter(r => r.vehicle_id === vehicle_id);
-  if (reported_by) data = data.filter(r => r.reported_by === reported_by);
-  if (status) data = data.filter(r => (r.status || '').toLowerCase() === status.toLowerCase());
-  res.json(data);
+exports.getAll = async (req, res) => {
+  try {
+    const docs = await DamageReport.find().lean();
+    res.json(docs);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
 };
 
-// GET /api/damage-reports/:id
-exports.getById = (req, res) => {
-  const report = damageReports.find(r => r.report_id === req.params.id);
-  if (!report) return res.status(404).json({ error: "Damage report not found" });
-  res.json(report);
+exports.getById = async (req, res) => {
+  try {
+    const doc = await DamageReport.findOne({
+      report_id: req.params.id,
+    }).lean();
+    if (!doc) return res.status(404).json({ message: "Damage report not found" });
+    res.json(doc);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
 };
 
-// POST /api/damage-reports
-exports.create = (req, res) => {
-  const { rental_id, vehicle_id, reported_by, description, estimated_cost, status, created_at } = req.body || {};
-  if (!vehicle_id || !reported_by || !description)
-    return res.status(400).json({ error: "vehicle_id, reported_by, description là bắt buộc" });
-
-  const allowedStatus = ["New", "Pending Staff Review", "Resolved"];
-  if (status && !allowedStatus.includes(status))
-    return res.status(400).json({ error: `status phải thuộc: ${allowedStatus.join(", ")}` });
-
-  const report_id = generateId("drx");
-  const created = {
-    report_id,
-    rental_id: rental_id || null,
-    vehicle_id,
-    reported_by,
-    description,
-    estimated_cost: estimated_cost || "0 VND",
-    status: status || "New",
-    created_at: created_at || new Date().toISOString(),
-    resolved_by: null,
-    resolved_at: null
-  };
-  damageReports.push(created);
-  res.status(201).json(created);
+exports.create = async (req, res) => {
+  try {
+    const data = req.body;
+    data.report_id =
+      data.report_id || (await nextId(DamageReport, "drx", "report_id"));
+    const doc = await DamageReport.create(data);
+    res.status(201).json(doc);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
 };
 
-// PATCH /api/damage-reports/:id
-exports.update = (req, res) => {
-  const idx = damageReports.findIndex(r => r.report_id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Damage report not found" });
-  damageReports[idx] = { ...damageReports[idx], ...req.body };
-  res.json(damageReports[idx]);
+exports.update = async (req, res) => {
+  try {
+    const doc = await DamageReport.findOneAndUpdate(
+      { report_id: req.params.id },
+      req.body,
+      { new: true }
+    );
+    if (!doc) return res.status(404).json({ message: "Damage report not found" });
+    res.json(doc);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
 };
 
-// PATCH /api/damage-reports/:id/resolve
-exports.resolve = (req, res) => {
-  const idx = damageReports.findIndex(r => r.report_id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Damage report not found" });
-
-  const { resolved_by, notes } = req.body || {};
-  if (!resolved_by)
-    return res.status(400).json({ error: "resolved_by là bắt buộc khi đánh dấu Resolved" });
-
-  damageReports[idx] = {
-    ...damageReports[idx],
-    status: "Resolved",
-    resolved_by,
-    resolved_at: new Date().toISOString(),
-    resolution_notes: notes || null
-  };
-  res.json(damageReports[idx]);
-};
-
-// DELETE /api/damage-reports/:id
-exports.remove = (req, res) => {
-  const idx = damageReports.findIndex(r => r.report_id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Damage report not found" });
-  damageReports.splice(idx, 1);
-  res.status(204).end();
+exports.remove = async (req, res) => {
+  try {
+    const doc = await DamageReport.findOneAndDelete({
+      report_id: req.params.id,
+    });
+    if (!doc) return res.status(404).json({ message: "Damage report not found" });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
 };

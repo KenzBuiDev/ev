@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const ctrl = require("../controllers/rentalPhotos.controller");
+const ctrl = require("../controllers/paymentsCrud.controller");
 const { requireAuth, requireRole } = require("../middleware/auth");
 
 router.get("/", requireAuth, requireRole("admin", "staff"), ctrl.getAll);

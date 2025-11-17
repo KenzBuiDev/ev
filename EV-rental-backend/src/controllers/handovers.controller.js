@@ -1,67 +1,61 @@
-const handovers = require("../models/handovers.model");
-const { generateId } = require("../utils/generateId");
+const Handover = require("../models/Handover");
+const { nextId } = require("../utils/idHelper");
 
-// GET /api/handovers?rental_id=rt001&kind=CHECKOUT&staff_id=s001
-exports.list = (req, res) => {
-  const { rental_id, kind, staff_id } = req.query;
-  let data = handovers;
-  if (rental_id) data = data.filter(h => h.rental_id === rental_id);
-  if (kind) data = data.filter(h => (h.kind || '').toUpperCase() === kind.toUpperCase());
-  if (staff_id) data = data.filter(h => h.staff_id === staff_id);
-  res.json(data);
-};
-
-// GET /api/handovers/:id
-exports.getById = (req, res) => {
-  const h = handovers.find(x => x.handover_id === req.params.id);
-  if (!h) return res.status(404).json({ error: "Handover not found" });
-  res.json(h);
-};
-
-// POST /api/handovers
-exports.create = (req, res) => {
-  const { rental_id, kind, battery_percent, odometer, notes, staff_id, timestamp } = req.body || {};
-  if (!rental_id || !kind || !staff_id)
-    return res.status(400).json({ error: "rental_id, kind, staff_id là bắt buộc" });
-
-  const allowedKinds = ["CHECKOUT", "CHECKIN"];
-  if (!allowedKinds.includes(kind))
-    return res.status(400).json({ error: `kind phải thuộc: ${allowedKinds.join(", ")}` });
-
-  const handover_id = generateId("hdx");
-  const created = {
-    handover_id,
-    rental_id,
-    kind,
-    timestamp: timestamp || new Date().toISOString(),
-    battery_percent: battery_percent ?? null,
-    odometer: odometer ?? null,
-    notes: notes || "",
-    staff_id
-  };
-  handovers.push(created);
-  res.status(201).json(created);
-};
-
-// PATCH /api/handovers/:id
-exports.update = (req, res) => {
-  const idx = handovers.findIndex(h => h.handover_id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Handover not found" });
-
-  const patch = { ...req.body };
-  if (patch.kind) {
-    const allowedKinds = ["CHECKOUT", "CHECKIN"];
-    if (!allowedKinds.includes(patch.kind))
-      return res.status(400).json({ error: `kind phải thuộc: ${allowedKinds.join(", ")}` });
+exports.getAll = async (req, res) => {
+  try {
+    const docs = await Handover.find().lean();
+    res.json(docs);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
   }
-  handovers[idx] = { ...handovers[idx], ...patch };
-  res.json(handovers[idx]);
 };
 
-// DELETE /api/handovers/:id
-exports.remove = (req, res) => {
-  const idx = handovers.findIndex(h => h.handover_id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Handover not found" });
-  handovers.splice(idx, 1);
-  res.status(204).end();
+exports.getById = async (req, res) => {
+  try {
+    const doc = await Handover.findOne({
+      handover_id: req.params.id,
+    }).lean();
+    if (!doc) return res.status(404).json({ message: "Handover not found" });
+    res.json(doc);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+};
+
+exports.create = async (req, res) => {
+  try {
+    const data = req.body;
+    data.handover_id =
+      data.handover_id || (await nextId(Handover, "hdx", "handover_id"));
+    const doc = await Handover.create(data);
+    res.status(201).json(doc);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+};
+
+exports.update = async (req, res) => {
+  try {
+    const doc = await Handover.findOneAndUpdate(
+      { handover_id: req.params.id },
+      req.body,
+      { new: true }
+    );
+    if (!doc) return res.status(404).json({ message: "Handover not found" });
+    res.json(doc);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+};
+
+exports.remove = async (req, res) => {
+  try {
+    const doc = await Handover.findOneAndDelete({
+      handover_id: req.params.id,
+    });
+    if (!doc) return res.status(404).json({ message: "Handover not found" });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
 };

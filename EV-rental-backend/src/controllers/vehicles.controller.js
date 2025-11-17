@@ -1,47 +1,54 @@
-const vehicles = require("../models/vehicles.model");
-const { generateId } = require("../utils/generateId");
+// src/controllers/vehicles.controller.js
+const Vehicle = require("../models/Vehicle");
 
-exports.list = (req, res) => {
-  const { station_id, type, status } = req.query;
-  let data = vehicles;
-  if (station_id) data = data.filter(v => v.station_id === station_id);
-  if (type) data = data.filter(v => v.type.toLowerCase() === type.toLowerCase());
-  if (status) data = data.filter(v => v.status.toLowerCase() === status.toLowerCase());
-  res.json(data);
+// GET /api/vehicles
+exports.getAll = async (req, res) => {
+  try {
+    const vehicles = await Vehicle.find().lean();
+    res.json(vehicles);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
 
-exports.getById = (req, res) => {
-  const vehicle = vehicles.find(v => v.vehicle_id === req.params.id);
-  if (!vehicle) return res.status(404).json({ error: "Vehicle not found" });
-  res.json(vehicle);
+// GET /api/vehicles/:id (vehicle_id)
+exports.getById = async (req, res) => {
+  try {
+    const vehicle = await Vehicle.findOne({
+      vehicle_id: req.params.id,
+    }).lean();
+    if (!vehicle) return res.status(404).json({ message: "Vehicle not found" });
+    res.json(vehicle);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
 
-exports.create = (req, res) => {
-  const { station_id, plate_no, model, type, status, battery_percent, odometer } = req.body || {};
-  if (!station_id || !plate_no || !model || !type)
-    return res.status(400).json({ error: "station_id, plate_no, model, type là bắt buộc" });
-
-  const vehicle_id = generateId("v");
-  const newVehicle = {
-    vehicle_id, station_id, plate_no, model, type,
-    status: status || "Available",
-    battery_percent: battery_percent ?? 100,
-    odometer: odometer ?? 0
-  };
-  vehicles.push(newVehicle);
-  res.status(201).json(newVehicle);
+// POST /api/vehicles (admin/staff)
+exports.create = async (req, res) => {
+  try {
+    const data = req.body;
+    const count = await Vehicle.countDocuments();
+    data.vehicle_id =
+      data.vehicle_id || `v${(count + 1).toString().padStart(3, "0")}`;
+    const doc = await Vehicle.create(data);
+    res.status(201).json(doc);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
 };
 
-exports.update = (req, res) => {
-  const idx = vehicles.findIndex(v => v.vehicle_id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Vehicle not found" });
-  vehicles[idx] = { ...vehicles[idx], ...req.body };
-  res.json(vehicles[idx]);
-};
-
-exports.remove = (req, res) => {
-  const idx = vehicles.findIndex(v => v.vehicle_id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Vehicle not found" });
-  vehicles.splice(idx, 1);
-  res.status(204).end();
+// PUT /api/vehicles/:id
+exports.update = async (req, res) => {
+  try {
+    const doc = await Vehicle.findOneAndUpdate(
+      { vehicle_id: req.params.id },
+      req.body,
+      { new: true }
+    );
+    if (!doc) return res.status(404).json({ message: "Vehicle not found" });
+    res.json(doc);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
 };
