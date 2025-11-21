@@ -26,4 +26,6 @@ router.use("/payments-crud", require("./paymentsCrud.routes"));
 
 router.use("/damage-reports", require("./damageReports.routes")); // STAFF chỉ được xem
 
+router.use("/billing", require("./billing.routes"));
+
 module.exports = router;

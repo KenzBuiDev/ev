@@ -1,20 +1,28 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+const API_URL = import.meta.env.VITE_API_BASE || "http://localhost:3000/api";
 
 async function request(path, options = {}) {
-    const headers = options.headers || {};
-    headers["Content-Type"] = "application/json";
+  // tạo headers mới, gõ tay, không copy
+  const headers = options.headers ? { ...options.headers } : {};
 
-    const token = localStorage.getItem("token");
-    if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (!headers["Content-Type"]) headers["Content-Type"] = "application/json";
 
-    const res = await fetch(API_URL + path, { ...options, headers });
+  const token = localStorage.getItem("token");
+  if (token) headers["Authorization"] = `Bearer ${token}`;
 
-    if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || res.statusText || "Request failed");
-    }
+  const res = await fetch(API_URL + path, { ...options, headers });
 
-    return res.json();
+  const json = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    const msg =
+      json?.error?.message ||
+      json?.message ||
+      res.statusText ||
+      "Request failed";
+    throw new Error(msg);
+  }
+
+  return json?.data ?? json;
 }
 
 export default { request };

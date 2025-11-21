@@ -1,3 +1,23 @@
+/**
+ * PAYMENTS CONTROLLER
+ * 
+ * Xử lý thanh toán qua VNPay
+ * 
+ * Các function chính:
+ * 1. createVNPayLink: Tạo link thanh toán
+ * 2. vnpReturn: Xử lý callback khi user quay về từ VNPay
+ * 3. vnpIpn: Xử lý server-to-server callback từ VNPay
+ * 
+ * FLOW:
+ * Frontend → POST /vnpay/create (tạo link)
+ *           ↓
+ *         VNPay (user thanh toán)
+ *           ↓
+ *         Frontend (/payment/return) ← GET /vnpay/return (optional)
+ *           ↓
+ *         POST /rentals (tạo rental record)
+ */
+
 // src/controllers/payments.controller.js
 const { buildSignedUrl, formatDateVNP, verifySignature } = require("../utils/vnpay");
 const Reservation = require("../models/Reservation");
@@ -13,9 +33,12 @@ const VNP_RETURN_URL =
   process.env.VNP_RETURN_URL || "http://localhost:5173/payment/return";
 
 // -------------------------------------------------------------------------------------
-// Helper
+// Helper Functions
 // -------------------------------------------------------------------------------------
 
+/**
+ * Kiểm tra các env vars cần thiết cho VNPay
+ */
 function ensureEnv() {
   const miss = [];
   if (!VNP_TMN_CODE) miss.push("VNP_TMN_CODE");
@@ -25,6 +48,12 @@ function ensureEnv() {
   }
 }
 
+/**
+ * Lấy IP address của client
+ * - Từ X-Forwarded-For header (khi qua proxy)
+ * - Hoặc từ socket remote address
+ * - Fallback: 127.0.0.1
+ */
 function clientIp(req) {
   return (
     (req.headers["x-forwarded-for"] || "")
@@ -37,11 +66,17 @@ function clientIp(req) {
 }
 
 /**
- * Tính số tiền cần thanh toán dựa trên Reservation + Vehicle trong Mongo
- * Ưu tiên dùng reservation.estimated_amount nếu đã được set.
+ * Tính số tiền cần thanh toán từ Reservation + Vehicle
+ * 
+ * Ưu tiên:
+ * 1. Nếu reservation.estimated_amount đã được set → dùng luôn
+ * 2. Ngược lại → tính từ hours * price_per_hour
+ * 
+ * @param {string} reservation_id
+ * @returns {object} { amountVND, currency }
  */
 async function computeAmountFromReservation(reservation_id) {
-  // Lấy reservation từ Mongo
+  // Lấy reservation từ MongoDB
   const rsv = await Reservation.findOne({ reservation_id }).lean();
   if (!rsv) throw new Error("Reservation not found");
 
@@ -65,7 +100,7 @@ async function computeAmountFromReservation(reservation_id) {
     throw new Error("Invalid start_time or end_time");
   }
 
-  // nếu end <= start thì cộng thêm 1 ngày cho chắc (tránh case lỗi dữ liệu)
+  // Nếu end <= start thì cộng thêm 1 giờ (tránh lỗi dữ liệu)
   if (end <= start) {
     end = new Date(start.getTime() + 60 * 60 * 1000); // mặc định 1h
   }
@@ -87,6 +122,29 @@ async function computeAmountFromReservation(reservation_id) {
 // body: { reservation_id }
 // -------------------------------------------------------------------------------------
 
+/**
+ * Tạo link thanh toán VNPay
+ * 
+ * Request body:
+ * {
+ *   reservation_id: "rsv001"
+ * }
+ * 
+ * Quá trình:
+ * 1. Lấy reservation từ MongoDB
+ * 2. Tính amount từ reservation.estimated_amount hoặc từ Vehicle + thời gian
+ * 3. Build VNPay params (TMN code, amount, order info, etc)
+ * 4. Sign params bằng HMAC SHA512
+ * 5. Build payment_url
+ * 6. Trả về payment_url cho frontend
+ * 
+ * Response:
+ * {
+ *   payment_url: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_Amount=40000000&vnp_CreateDate=...",
+ *   order_id: "20241121123456",
+ *   created_at: "2024-11-21T..."
+ * }
+ */
 async function createVNPayLink(req, res) {
   try {
     ensureEnv();
@@ -110,15 +168,15 @@ async function createVNPayLink(req, res) {
 
     const createDate = formatDateVNP(new Date());
 
-    // Để dễ mapping IPN, mình dùng luôn reservation_id làm vnp_TxnRef
-    // (VNPay chỉ yêu cầu unique và <= 34 ký tự)
+    // Dùng reservation_id làm vnp_TxnRef (để IPN trả về)
+    // VNPay yêu cầu: unique và <= 34 ký tự
     const vnpParams = {
       vnp_Version: "2.1.0",
       vnp_Command: "pay",
       vnp_TmnCode: VNP_TMN_CODE,
       vnp_Locale: "vn",
       vnp_CurrCode: "VND",
-      vnp_TxnRef: reservation_id, // 🔹 khóa chính để IPN trả về
+      vnp_TxnRef: reservation_id, // 🔹 khóa để IPN mapping
       vnp_OrderInfo: `Thanh toan dat cho ${reservation_id}`,
       vnp_OrderType: "other",
       vnp_Amount: String(amountForVNP),
@@ -128,6 +186,7 @@ async function createVNPayLink(req, res) {
       // vnp_ExpireDate: formatDateVNP(new Date(Date.now() + 15 * 60 * 1000)),
     };
 
+    // Build URL + sign
     const payment_url = buildSignedUrl(vnpParams, VNP_URL, VNP_HASH_SECRET);
     return res.json({ payment_url });
   } catch (e) {
@@ -139,10 +198,22 @@ async function createVNPayLink(req, res) {
 }
 
 // -------------------------------------------------------------------------------------
-// 2) Return URL (nếu bạn cấu hình VNP_RETURN_URL về backend)
+// 2) Return URL (nếu cấu hình VNP_RETURN_URL về backend)
 // GET /api/payments/vnpay/return
 // -------------------------------------------------------------------------------------
 
+/**
+ * Xử lý return URL từ VNPay
+ * 
+ * Quá trình:
+ * 1. VNPay redirect về URL này với query params (vnp_ResponseCode, vnp_TxnRef, etc)
+ * 2. Verify signature của params
+ * 3. Redirect về frontend (/payment/return) kèm tất cả params
+ * 4. Frontend sẽ parse params + tạo rental từ sessionStorage
+ * 
+ * Note: Thường frontend xử lý phần này, nên return URL có thể trỏ trực tiếp về frontend
+ * Backend serve endpoint này chỉ để verify + relay params nếu cần
+ */
 async function vnpReturn(req, res) {
   try {
     const ok = verifySignature(req.query, VNP_HASH_SECRET);
@@ -150,7 +221,7 @@ async function vnpReturn(req, res) {
       return res.status(400).send("Invalid signature");
     }
 
-    // Thường thì mình chỉ redirect về front-end để FE đọc query & hiển thị trạng thái
+    // Redirect về frontend /payment/return kèm tất cả params
     const feUrl = `http://localhost:5173/payment/return?${new URLSearchParams(
       req.query
     ).toString()}`;
@@ -162,36 +233,49 @@ async function vnpReturn(req, res) {
 }
 
 // -------------------------------------------------------------------------------------
-// 3) IPN – server-to-server (VNPay gọi sang để xác nhận trạng thái giao dịch)
+// 3) IPN – server-to-server callback từ VNPay
 // GET /api/payments/vnpay/ipn
 // -------------------------------------------------------------------------------------
 
+/**
+ * IPN (Instant Payment Notification)
+ * 
+ * VNPay server sẽ call endpoint này để thông báo kết quả giao dịch
+ * - VNPay gửi: vnp_ResponseCode, vnp_TxnRef (= reservation_id), vnp_Amount, etc
+ * - Backend verify signature
+ * - Backend có thể update Reservation.status nếu cần
+ * 
+ * Response: Luôn trả HTTP 200 + RspCode (theo spec VNPay)
+ * - RspCode: "00" = success, "97" = signature fail, "99" = other error
+ * 
+ * Important: Frontend đã create rental từ PaymentReturn
+ * IPN chỉ dùng để verify + update status nếu cần
+ */
 async function vnpIpn(req, res) {
   try {
     const valid = verifySignature(req.query, VNP_HASH_SECRET);
     if (!valid) {
-      // Theo tài liệu VNPay, IPN phải luôn trả HTTP 200,
-      // nhưng RspCode khác nhau để báo lỗi/ok
+      // Theo VNPay spec: IPN luôn trả HTTP 200, RspCode khác để báo lỗi
       return res
         .status(200)
         .json({ RspCode: "97", Message: "Invalid signature" });
     }
 
-    // Một số trường quan trọng từ VNPay
-    const vnp_TxnRef = req.query.vnp_TxnRef; // ở trên mình set = reservation_id
+    // Lấy các param quan trọng
+    const vnp_TxnRef = req.query.vnp_TxnRef; // = reservation_id
     const vnp_Amount = req.query.vnp_Amount; // *100
-    const vnp_ResponseCode = req.query.vnp_ResponseCode; // '00' = thành công
-    const vnp_TransactionNo = req.query.vnp_TransactionNo || ""; // mã giao dịch bên VNPay
+    const vnp_ResponseCode = req.query.vnp_ResponseCode; // '00' = success
+    const vnp_TransactionNo = req.query.vnp_TransactionNo || "";
     const vnp_BankTranNo = req.query.vnp_BankTranNo || "";
 
-    // Chuyển amount về VND bình thường
+    // Convert amount về VND
     const amountVND = Number(vnp_Amount || 0) / 100;
 
-    // Cố gắng map sang reservation
+    // Map sang reservation
     const reservation_id = vnp_TxnRef;
 
-    // Tùy design: bạn có thể update Reservation.status tại đây
-    // Ví dụ (chỉ demo, không bắt buộc):
+    // Step 1: Update Reservation status nếu payment thành công
+    // Điều này giúp theo dõi trạng thái reservation từ pending -> confirmed
     if (reservation_id && vnp_ResponseCode === "00") {
       await Reservation.findOneAndUpdate(
         { reservation_id },
@@ -199,31 +283,59 @@ async function vnpIpn(req, res) {
       );
     }
 
-    // Ghi log payment vào Mongo (optional nhưng rất nên)
+    // Step 2: Ghi log payment vào MongoDB để có audit trail
+    // Important: Điều này để lại record của mỗi giao dịch VNPay
+    // Có thể dùng để reconciliation hoặc debug sau này
     const payment_id = await nextId(Payment, "px", "payment_id");
 
     await Payment.create({
       payment_id,
-      rental_id: null, // nếu bạn có mapping reservation -> rental thì set sau
+      rental_id: null, // TODO: Có thể populate sau khi có mapping reservation -> rental
       type: "Rental Fee",
       amount: `${amountVND} VND`,
       method: "Card",
-      provider_ref: vnp_TransactionNo || vnp_BankTranNo,
-      status: vnp_ResponseCode === "00" ? "Success" : "Failed",
+      provider_ref: vnp_TransactionNo || vnp_BankTranNo, // Reference từ VNPay
+      status: vnp_ResponseCode === "00" ? "Success" : "Failed", // Kết quả giao dịch
       paid_at: new Date(),
-      handled_by: null, // có thể gán admin/staff sau
+      handled_by: null, // Có thể gán admin/staff khi verify sau
     });
 
-    // Trả về cho VNPay biết là mình đã xử lý xong
+    // Step 3: Trả HTTP 200 + RspCode = "00" cho VNPay để báo thành công
+    // Important: Theo VNPay spec, IPN luôn phải trả HTTP 200
+    // VNPay sẽ retry nếu không nhận được HTTP 200, có thể dẫn đến duplicate payment
+    // Nếu có lỗi business logic, dùng RspCode khác (không phải HTTP status code khác)
     return res
       .status(200)
       .json({ RspCode: "00", Message: "Confirm Success" });
   } catch (e) {
     console.error("[VNPay][ipn]", e);
+    // Trả HTTP 200 với RspCode = "99" để báo lỗi nhưng không dẫn đến retry từ VNPay
     return res.status(200).json({ RspCode: "99", Message: "Unknown error" });
   }
 }
 
+// =============================================================================================
+// MODULE EXPORTS
+// =============================================================================================
+
+/**
+ * Exported functions sử dụng bởi routes/payments.routes.js
+ * 
+ * createVNPayLink: Tạo payment link (POST /api/payments/vnpay/create)
+ *   - Input: { reservation_id }
+ *   - Output: { payment_url, order_id, created_at }
+ *   - Dùng để redirect user sang VNPay payment page
+ * 
+ * vnpReturn: Xử lý user redirect từ VNPay (GET /api/payments/vnpay/return)
+ *   - Input: Tất cả query params từ VNPay
+ *   - Output: Redirect về frontend /payment/return
+ *   - Note: Frontend parse params + create rental từ sessionStorage
+ * 
+ * vnpIpn: Xử lý IPN callback từ VNPay (GET /api/payments/vnpay/ipn)
+ *   - Input: Query params từ VNPay server-to-server
+ *   - Output: HTTP 200 + { RspCode, Message }
+ *   - Side effects: Update Reservation status, ghi Payment log
+ */
 module.exports = {
   createVNPayLink,
   vnpReturn,

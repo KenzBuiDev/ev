@@ -1,18 +1,35 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import '../styles/VehicleCard.css'
 
 export default function VehicleCard({ v }) {
-    const vid = v.id || v.vehicle_id // ✅ lấy id đúng dù backend trả key nào
-    return (
-        <div style={{ border: '1px solid #ddd', padding: 12, borderRadius: 8 }}>
-            <img
-                src={v.image_url || '/placeholder.png'}
-                alt={v.name}
-                style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 6 }}
-            />
-            <h3>{v.name}</h3>
-            <p>Type: {v.type} • Price/hr: {v.price_per_hour}</p>
-            <Link to={`/vehicles/${vid}`}>Details</Link> {/* ✅ */}
-        </div>
-    )
+  // Lấy id theo key nào cũng được (id | vehicle_id)
+  const vid = v.id || v.vehicle_id
+  const name = v.name || v.model || vid
+
+  // Ưu tiên:
+  // 1) v.image_url từ backend
+  // 2) v.images[0].url nếu API trả mảng ảnh
+  // 3) Suy luận theo quy ước thư mục public/vehicles/{vehicle_id}.jpg
+  const primaryImage =
+    v.image_url ||
+    (Array.isArray(v.images) && v.images[0]?.url) ||
+    (vid ? `/vehicles/${vid}.jpg` : '/placeholder.png')
+
+  return (
+    <div className="vehicle-card-wrapper">
+      <img
+        src={primaryImage}
+        alt={name}
+        className="vehicle-card-image"
+        onError={(e) => { e.currentTarget.src = '/placeholder.png' }} // fallback khi thiếu file ảnh
+      />
+      <h3>{name}</h3>
+      <div className="vehicle-card-info">
+        <div>Mẫu: {v.type || v.category || 'N/A'}</div>
+        <div>Giá/giờ: {v.price_per_hour ?? v.pricePerHour ?? '—'} ₫</div>
+      </div>
+      {vid && <Link to={`/vehicles/${vid}`} className="vehicle-card-link">Thuê</Link>}
+    </div>
+  )
 }

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { getAllReports, updateReport, deleteReport } from '../../api/admin'
+import '../../styles/ManageReports.css'
 
 
 export default function ManageReports() {
@@ -18,25 +19,26 @@ export default function ManageReports() {
 
 
     return (
-        <div>
+        <div className="manage-reports">
             <h3>Damage Reports</h3>
-            <table style={{ width: '100%' }}>
-                <thead><tr><th>ID</th><th>Vehicle</th><th>Reported by</th><th>Status</th><th>Actions</th></tr></thead>
-                <tbody>
-                    {reports.map(r => (
-                        <tr key={r.report_id || r.id}>
-                            <td>{r.report_id || r.id}</td>
-                            <td>{r.vehicle_id}</td>
-                            <td>{r.reported_by}</td>
-                            <td>{r.status}</td>
-                            <td>
-                                {r.status !== 'Resolved' && <button onClick={() => resolve(r)}>Mark Resolved</button>}
-                                <button onClick={() => remove(r)}>Delete</button>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+            <div className="reports-list">
+                {reports.map(r => (
+                    <div key={r.report_id || r.id} className="report-card">
+                        <h4>Report #{r.report_id || r.id}</h4>
+                        <p><strong>Vehicle:</strong> {r.vehicle_id}</p>
+                        <p><strong>Reported by:</strong> {r.reported_by}</p>
+                        <span className={`report-severity ${(r.severity || 'medium').toLowerCase()}`}>
+                            {r.severity || 'Medium'}
+                        </span>
+                        <p><strong>Description:</strong> {r.description || 'No description'}</p>
+                        <p><strong>Status:</strong> {r.status}</p>
+                        <div className="report-card-actions">
+                            {r.status !== 'Resolved' && <button className="edit-btn" onClick={() => resolve(r)}>Mark Resolved</button>}
+                            <button className="delete-btn" onClick={() => remove(r)}>Delete</button>
+                        </div>
+                    </div>
+                ))}
+            </div>
         </div>
     )
 }

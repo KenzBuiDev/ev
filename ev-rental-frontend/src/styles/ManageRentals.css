@@ -1,0 +1,144 @@
+.manage-rentals {
+    width: 100%;
+    min-height: calc(100vh - 56px);
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    padding: 30px 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+.manage-rentals-wrapper {
+    max-width: 1300px;
+    margin: 0 auto;
+    width: 100%;
+    flex: 1;
+}
+
+.manage-rentals h3 {
+    color: white;
+    margin-bottom: 30px;
+    font-size: 32px;
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.rentals-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.rentals-table thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.rentals-table th {
+    padding: 16px 15px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.rentals-table td {
+    padding: 14px 15px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 14px;
+    color: #666;
+}
+
+.rentals-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.rentals-table tbody tr:hover {
+    background-color: #f8f9ff;
+}
+
+.rental-status {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.rental-status.pending {
+    background-color: #fff9c4;
+    color: #f57f17;
+}
+
+.rental-status.ongoing {
+    background-color: #c8e6c9;
+    color: #2e7d32;
+}
+
+.rental-status.completed {
+    background-color: #bbdefb;
+    color: #1565c0;
+}
+
+.rental-status.cancelled {
+    background-color: #ffcdd2;
+    color: #c62828;
+}
+
+.rental-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.rental-actions button {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.rental-actions .status-btn {
+    background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+    color: white;
+    box-shadow: 0 2px 6px rgba(33, 150, 243, 0.2);
+}
+
+.rental-actions .status-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(33, 150, 243, 0.3);
+}
+
+.rental-actions .delete-btn {
+    background: linear-gradient(135deg, #ff5252 0%, #e53935 100%);
+    color: white;
+    box-shadow: 0 2px 6px rgba(255, 82, 82, 0.2);
+}
+
+.rental-actions .delete-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(255, 82, 82, 0.3);
+}
+
+@media (max-width: 768px) {
+    .manage-rentals {
+        padding: 20px;
+    }
+
+    .rentals-table {
+        font-size: 12px;
+    }
+
+    .rentals-table th,
+    .rentals-table td {
+        padding: 10px;
+    }
+
+    .rental-actions {
+        flex-direction: column;
+    }
+}

@@ -1,0 +1,206 @@
+.manage-vehicles {
+    width: 100%;
+    min-height: calc(100vh - 56px);
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    padding: 30px 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+.manage-vehicles-wrapper {
+    max-width: 1300px;
+    margin: 0 auto;
+    width: 100%;
+    flex: 1;
+}
+
+.manage-vehicles h3 {
+    color: white;
+    margin-bottom: 30px;
+    font-size: 32px;
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.manage-vehicles-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 25px 30px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.manage-vehicles-header h3 {
+    margin: 0;
+    color: white;
+    font-size: 28px;
+}
+
+.manage-vehicles-btn-add {
+    padding: 12px 28px;
+    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    font-size: 15px;
+}
+
+.manage-vehicles-btn-add:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+}
+
+.manage-vehicles-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.manage-vehicles-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+.manage-vehicles-form input,
+.manage-vehicles-form select {
+    padding: 10px 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+}
+
+.manage-vehicles-form input:focus,
+.manage-vehicles-form select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 8px rgba(102, 126, 234, 0.2);
+}
+
+.manage-vehicles-form button {
+    grid-column: 1 / -1;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    font-size: 15px;
+}
+
+.manage-vehicles-form button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.vehicle-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+    flex: 1;
+}
+
+.vehicle-card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    border-left: 5px solid #667eea;
+}
+
+.vehicle-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.vehicle-card h4 {
+    color: #667eea;
+    margin: 0 0 15px 0;
+    font-size: 18px;
+}
+
+.vehicle-card p {
+    margin: 10px 0;
+    font-size: 14px;
+    color: #666;
+    display: flex;
+    justify-content: space-between;
+}
+
+.vehicle-card-actions {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.vehicle-card-actions button {
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    font-size: 14px;
+}
+
+.vehicle-card-actions .edit-btn {
+    background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+    color: white;
+    box-shadow: 0 4px 8px rgba(33, 150, 243, 0.2);
+}
+
+.vehicle-card-actions .edit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(33, 150, 243, 0.3);
+}
+
+.vehicle-card-actions .delete-btn {
+    background: linear-gradient(135deg, #ff5252 0%, #e53935 100%);
+    color: white;
+    box-shadow: 0 4px 8px rgba(255, 82, 82, 0.2);
+}
+
+.vehicle-card-actions .delete-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(255, 82, 82, 0.3);
+}
+
+@media (max-width: 768px) {
+    .vehicle-list {
+        grid-template-columns: 1fr;
+    }
+
+    .manage-vehicles {
+        padding: 20px;
+    }
+
+    .manage-vehicles h3 {
+        font-size: 24px;
+    }
+
+    .manage-vehicles-form {
+        grid-template-columns: 1fr;
+    }
+}

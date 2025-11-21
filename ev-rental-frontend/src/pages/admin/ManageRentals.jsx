@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { getAllRentals, updateRental, deleteRental } from '../../api/admin'
+import '../../styles/ManageRentals.css'
 
 
 export default function ManageRentals() {
@@ -17,9 +18,9 @@ export default function ManageRentals() {
 
     return (
         <div>
-            <h3>Manage Rentals</h3>
+            <h3>Quản lí thuê xe</h3>
             <table style={{ width: '100%' }}>
-                <thead><tr><th>ID</th><th>User</th><th>Vehicle</th><th>Period</th><th>Status</th><th>Actions</th></tr></thead>
+                <thead><tr><th>ID</th><th>Người dùng</th><th>Xe</th><th>Thời gian</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
                 <tbody>
                     {rentals.map(r => (
                         <tr key={r.rental_id || r.id}>
@@ -29,9 +30,9 @@ export default function ManageRentals() {
                             <td>{r.start_time || r.rental_start} → {r.end_time || r.rental_end}</td>
                             <td>{r.status}</td>
                             <td>
-                                <button onClick={() => changeStatus(r, 'Ongoing')}>Set Ongoing</button>
-                                <button onClick={() => changeStatus(r, 'Completed')}>Set Completed</button>
-                                <button onClick={() => remove(r)}>Delete</button>
+                                <button onClick={() => changeStatus(r, 'Ongoing')}>Đang diễn ra</button>
+                                <button onClick={() => changeStatus(r, 'Completed')}>Hoàn thành</button>
+                                <button onClick={() => remove(r)}>Xóa</button>
                             </td>
                         </tr>
                     ))}

@@ -16,15 +16,22 @@ export function AuthProvider({ children }) {
             body: JSON.stringify({ email, password }),
         });
 
-        // backend trả: { ok: true, data: { user, token } }
-        const data = res.data;
-        if (!data || !data.user || !data.token) throw new Error("Login failed");
+        // backend trả: { ok: true, data: { user, token } } hoặc { success: false, message: "..." }
+        const data = res.data || res;
+
+        // Check if login failed
+        if (!data?.success || !data?.user || !data?.token) {
+            const errorMsg = data?.message || "Sai email hoặc mật khẩu";
+            throw new Error(errorMsg);
+        }
 
         setUser(data.user);
         setToken(data.token);
 
         localStorage.setItem("user", JSON.stringify(data.user));
         localStorage.setItem("token", data.token);
+
+        return data;
     };
     const logout = async () => {
         await api.request("/auth/logout", { method: "POST" }).catch(() => { });
