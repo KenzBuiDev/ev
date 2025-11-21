@@ -49,7 +49,33 @@ exports.getMine = async (req, res) => {
 
 exports.getAll = async (req, res) => {
   try {
+    // Lấy danh sách tất cả rental và populate user information
+    // Tìm user data dựa vào renter_id để hiển thị tên người dùng
     const docs = await Rental.find().lean();
+    
+    // Nếu có rentals, populate user info cho mỗi rental
+    if (docs && docs.length > 0) {
+      const User = require("../models/User");
+      const enrichedDocs = await Promise.all(
+        docs.map(async (rental) => {
+          if (rental.renter_id) {
+            try {
+              const user = await User.findOne({ user_id: rental.renter_id }).lean();
+              if (user) {
+                rental.renter_name = user.full_name || user.email;
+                rental.renter_phone = user.phone;
+              }
+            } catch (e) {
+              // Nếu không tìm được user, cứ tiếp tục với renter_id
+              console.error(`Error finding user ${rental.renter_id}:`, e);
+            }
+          }
+          return rental;
+        })
+      );
+      return res.json(enrichedDocs);
+    }
+    
     res.json(docs);
   } catch (e) {
     res.status(500).json({ message: e.message });

@@ -49,6 +49,27 @@ export default function ManageRentals() {
     useEffect(() => { load() }, [])
 
     /**
+     * Hàm formatTime - Format thời gian ISO sang định dạng dễ đọc
+     * 
+     * @param {string} isoString - Thời gian ISO (ví dụ: 2024-11-21T10:30:00Z)
+     * @returns {string} Thời gian định dạng: "21/11/2024 10:30" hoặc "-" nếu không có
+     */
+    function formatTime(isoString) {
+        if (!isoString) return "-"
+        try {
+            const date = new Date(isoString)
+            const day = String(date.getDate()).padStart(2, '0')
+            const month = String(date.getMonth() + 1).padStart(2, '0')
+            const year = date.getFullYear()
+            const hours = String(date.getHours()).padStart(2, '0')
+            const minutes = String(date.getMinutes()).padStart(2, '0')
+            return `${day}/${month}/${year} ${hours}:${minutes}`
+        } catch (e) {
+            return isoString
+        }
+    }
+
+    /**
      * Hàm load() - Lấy danh sách rental từ API
      * - Gọi getAllRentals() từ api/admin.js
      * - Cập nhật state rentals với data từ API
@@ -191,19 +212,26 @@ export default function ManageRentals() {
                             {/* Rental ID */}
                             <td>{r.rental_id || r.id}</td>
 
-                            {/* User ID - người thuê xe */}
-                            <td>{r.user_id}</td>
+                            {/* Người dùng - Hiển thị tên nếu có, fallback về user_id */}
+                            <td>
+                                {r.renter_name || r.user_id || r.renter_id}
+                                {r.renter_phone && <div style={{ fontSize: '12px', color: '#666' }}>{r.renter_phone}</div>}
+                            </td>
 
                             {/* Vehicle ID - mã chiếc xe */}
                             <td>{r.vehicle_id}</td>
 
                             {/* 
-                              Thời gian thuê
-                              - Ưu tiên: start_time/end_time
-                              - Fallback: rental_start/rental_end (từ database cũ)
-                              - Separator: → (mũi tên)
+                              Thời gian thuê - Format: DD/MM/YYYY HH:MM
+                              - Ưu tiên: start_actual/end_actual (thời gian thực tế)
+                              - Fallback: start_time/end_time (thời gian dự kiến)
+                              - Sử dụng formatTime() để format
                             */}
-                            <td>{r.start_time || r.rental_start} → {r.end_time || r.rental_end}</td>
+                            <td>
+                                {formatTime(r.start_actual || r.start_time)}
+                                {' → '}
+                                {formatTime(r.end_actual || r.end_time)}
+                            </td>
 
                             {/* 
                               Status badge - Trạng thái rental
