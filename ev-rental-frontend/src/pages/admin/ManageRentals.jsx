@@ -215,7 +215,6 @@ export default function ManageRentals() {
                             {/* Người dùng - Hiển thị tên nếu có, fallback về user_id */}
                             <td>
                                 {r.renter_name || r.user_id || r.renter_id}
-                                {r.renter_phone && <div style={{ fontSize: '12px', color: '#666' }}>{r.renter_phone}</div>}
                             </td>
 
                             {/* Vehicle ID - mã chiếc xe */}
