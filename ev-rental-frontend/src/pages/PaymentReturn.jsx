@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import api from "../api/fetchClient";
+import '../styles/PaymentReturn.css';
 
 /**
  * TRANG KẾT QUẢ THANH TOÁN
@@ -127,30 +128,30 @@ export default function PaymentReturn() {
     }
   }
 
-  if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>Đang xử lý...</div>;
+  if (loading) return <div className="payment-loading">Đang xử lý...</div>;
   if (!info) return <p>Không có thông tin thanh toán</p>;
 
   return (
-    <div style={{ maxWidth: 600, margin: '40px auto', padding: '20px' }}>
+    <div className="payment-return-container">
       <h2>Kết quả thanh toán</h2>
       {info.status === "success" ? (
-        <div style={{ backgroundColor: '#e8f5e9', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
-          <p style={{ color: '#2e7d32', fontSize: '18px', fontWeight: 'bold' }}>✓ Thanh toán thành công</p>
+        <div className="payment-status-card success">
+          <p className="payment-status-title">✓ Thanh toán thành công</p>
           <p><strong>Tham chiếu:</strong> {info.txnRef}</p>
           <p><strong>Số tiền:</strong> {info.amount}</p>
           <p><strong>Ngân hàng:</strong> {info.bank}</p>
           <p><strong>Thời gian:</strong> {info.payDate}</p>
-          <p style={{ color: '#666', marginTop: '15px', fontSize: '14px' }}>Đơn thuê xe của bạn đã được tạo. Kiểm tra lịch sử thuê để xem chi tiết.</p>
+          <p className="payment-info-text">Đơn thuê xe của bạn đã được tạo. Kiểm tra lịch sử thuê để xem chi tiết.</p>
         </div>
       ) : (
-        <div style={{ backgroundColor: '#ffebee', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
-          <p style={{ color: '#c62828', fontSize: '18px', fontWeight: 'bold' }}>✗ Thanh toán thất bại</p>
+        <div className="payment-status-card failed">
+          <p className="payment-status-title">✗ Thanh toán thất bại</p>
           <p>Vui lòng thử lại hoặc liên hệ hỗ trợ.</p>
         </div>
       )}
-      <div style={{ display: 'flex', gap: '10px' }}>
-        <Link to="/profile" style={{ flex: 1, padding: '10px 20px', backgroundColor: '#667eea', color: 'white', textAlign: 'center', borderRadius: '4px', textDecoration: 'none', fontWeight: '600' }}>Xem lịch sử thuê</Link>
-        <Link to="/" style={{ flex: 1, padding: '10px 20px', backgroundColor: '#e0e0e0', color: '#333', textAlign: 'center', borderRadius: '4px', textDecoration: 'none', fontWeight: '600' }}>Về trang chủ</Link>
+      <div className="payment-actions">
+        <Link to="/profile" className="profile-link">Xem lịch sử thuê</Link>
+        <Link to="/" className="home-link">Về trang chủ</Link>
       </div>
     </div>
   );

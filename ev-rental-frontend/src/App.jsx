@@ -4,7 +4,6 @@ import ManageVehicles from "./pages/admin/ManageVehicles";
 import ManageRentals from "./pages/admin/ManageRentals";
 import ManageReports from "./pages/admin/ManageReports";
 import Profile from "./pages/Profile";
-import Debug from "./pages/Debug";
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 import Register from "./pages/Register";
@@ -67,10 +66,6 @@ export default function App() {
       <Route
         path="/payment/return"
         element={<Layout><PaymentReturn /></Layout>}
-      />
-      <Route
-        path="/debug"
-        element={<Layout><Debug /></Layout>}
       />
       <Route
         path="/profile"

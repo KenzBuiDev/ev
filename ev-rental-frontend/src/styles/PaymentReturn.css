@@ -1,0 +1,143 @@
+/**
+ * PAYMENT RETURN PAGE STYLES
+ * 
+ * Hiển thị kết quả thanh toán từ VNPay
+ * - Success: Xanh lá (#e8f5e9)
+ * - Failed: Đỏ (#ffebee)
+ */
+
+.payment-return-container {
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 20px;
+}
+
+.payment-return-container h2 {
+    color: #333;
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 28px;
+    font-weight: 600;
+}
+
+.payment-status-card {
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    animation: slideDown 0.3s ease-out;
+}
+
+.payment-status-card.success {
+    background-color: #e8f5e9;
+    border-left: 4px solid #2e7d32;
+}
+
+.payment-status-card.failed {
+    background-color: #ffebee;
+    border-left: 4px solid #c62828;
+}
+
+.payment-status-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.payment-status-card.success .payment-status-title {
+    color: #2e7d32;
+}
+
+.payment-status-card.failed .payment-status-title {
+    color: #c62828;
+}
+
+.payment-status-card p {
+    margin: 8px 0;
+    color: #333;
+    font-size: 14px;
+}
+
+.payment-status-card strong {
+    font-weight: 600;
+}
+
+.payment-info-text {
+    color: #666;
+    margin-top: 15px;
+    font-size: 14px;
+}
+
+.payment-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.payment-actions a {
+    flex: 1;
+    padding: 12px 20px;
+    text-align: center;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 15px;
+    transition: all 0.3s;
+}
+
+.payment-actions .profile-link {
+    background-color: #667eea;
+    color: white;
+}
+
+.payment-actions .profile-link:hover {
+    background-color: #5568d3;
+    transform: translateY(-2px);
+}
+
+.payment-actions .home-link {
+    background-color: #e0e0e0;
+    color: #333;
+}
+
+.payment-actions .home-link:hover {
+    background-color: #d0d0d0;
+    transform: translateY(-2px);
+}
+
+.payment-loading {
+    padding: 40px 20px;
+    text-align: center;
+    color: #667eea;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .payment-return-container {
+        margin: 20px auto;
+        padding: 15px;
+    }
+
+    .payment-return-container h2 {
+        font-size: 24px;
+    }
+
+    .payment-actions {
+        flex-direction: column;
+    }
+
+    .payment-actions a {
+        width: 100%;
+    }
+}

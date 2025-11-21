@@ -60,7 +60,7 @@ export default function Register() {
         if (form.phone) {
             const phoneDigits = form.phone.replace(/\D/g, ""); // Remove non-digits
             if (phoneDigits.length !== 10) {
-                errors.phone = "Số điện thoại phải có đúng 10 chữ số";
+                errors.phone = "Số điện thoại phải có 10 số";
             }
         } else {
             errors.phone = "Số điện thoại là bắt buộc";

@@ -174,7 +174,7 @@ export default function VehicleDetail() {
           <p><strong>Trạng thái:</strong> <span className={`status-badge ${vehicle.status?.toLowerCase() || 'available'}`}>{vehicle.status || 'Sẵn sàng'}</span></p>
 
           {!isAvailable && (
-            <div style={{ backgroundColor: '#ffebee', padding: '12px', borderRadius: '8px', marginTop: '12px', color: '#c62828', fontWeight: '600' }}>
+            <div className="unavailable-warning">
               ⚠️ Xe này hiện không khả dụng. Vui lòng chọn xe khác.
             </div>
           )}
@@ -235,7 +235,7 @@ export default function VehicleDetail() {
             )}
           </div>
         ) : (
-          <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>
+          <div className="unavailable-message">
             <p>Xe này không khả dụng để đặt. Vui lòng quay lại trang chủ để chọn xe khác.</p>
           </div>
         )}

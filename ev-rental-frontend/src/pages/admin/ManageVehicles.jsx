@@ -2,9 +2,18 @@ import React, { useState, useEffect } from "react";
 import apiClient from "../../api/fetchClient";
 import '../../styles/ManageVehicles.css'
 
+/**
+ * ManageVehicles Component - Quản lý xe trong hệ thống
+ * Cho phép admin tạo, sửa, xóa và xem danh sách xe điện
+ */
 export default function ManageVehicles() {
+    // State: Danh sách tất cả xe từ API
     const [vehicles, setVehicles] = useState([]);
+
+    // State: Xe đang được chỉnh sửa (null nếu tạo mới)
     const [editing, setEditing] = useState(null);
+
+    // State: Dữ liệu form cho việc tạo/sửa xe
     const [form, setForm] = useState({
         station_id: "",
         plate_no: "",
@@ -16,10 +25,15 @@ export default function ManageVehicles() {
         price_per_hour: 0
     });
 
+    // useEffect Hook: Tải danh sách xe khi component mount lần đầu
     useEffect(() => {
         loadVehicles();
     }, []);
 
+    /**
+     * Hàm loadVehicles - Tải danh sách xe từ API
+     * Gọi endpoint GET /vehicles để lấy danh sách tất cả xe
+     */
     async function loadVehicles() {
         try {
             const data = await apiClient.request("/vehicles"); // giả sử API trả về mảng xe
@@ -29,6 +43,10 @@ export default function ManageVehicles() {
         }
     }
 
+    /**
+     * Hàm startCreate - Khởi tạo form để tạo xe mới
+     * Reset trạng thái editing và xóa dữ liệu form
+     */
     function startCreate() {
         setEditing(null);
         setForm({
@@ -43,19 +61,32 @@ export default function ManageVehicles() {
         });
     }
 
+    /**
+     * Hàm startEdit - Khởi tạo form để sửa xe hiện có
+     * @param {Object} vehicle - Dữ liệu xe cần sửa
+     * Lưu xe đang sửa và điền dữ liệu vào form
+     */
     function startEdit(vehicle) {
         setEditing(vehicle);
         setForm(vehicle);
     }
 
+    /**
+     * Hàm saveVehicle - Lưu xe (tạo mới hoặc cập nhật)
+     * Nếu editing có giá trị: gọi PUT để cập nhật
+     * Nếu editing là null: gọi POST để tạo xe mới
+     * Sau khi lưu thành công, reload danh sách và đóng form
+     */
     async function saveVehicle() {
         try {
             if (editing) {
+                // Cập nhật xe hiện có (PUT request)
                 await apiClient.request(`/vehicles/${editing.vehicle_id}`, {
                     method: "PUT",
                     body: JSON.stringify(form)
                 });
             } else {
+                // Tạo xe mới (POST request)
                 await apiClient.request("/vehicles", {
                     method: "POST",
                     body: JSON.stringify(form)
@@ -68,6 +99,11 @@ export default function ManageVehicles() {
         }
     }
 
+    /**
+     * Hàm removeVehicle - Xóa xe
+     * @param {string} id - ID của xe cần xóa
+     * Yêu cầu xác nhận trước khi xóa, gọi DELETE endpoint
+     */
     async function removeVehicle(id) {
         if (!confirm("Delete this vehicle?")) return;
         try {
@@ -82,11 +118,14 @@ export default function ManageVehicles() {
         <div style={{ padding: 20 }}>
             <h3>Quản lí xe</h3>
 
+            {/* Nút tạo xe mới */}
             <button onClick={startCreate} style={{ marginBottom: 16 }}>
                 Thêm xe mới
             </button>
 
+            {/* FORM SECTION: Tạo hoặc sửa xe */}
             <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 400, marginBottom: 24 }}>
+                {/* Input Trạm xe */}
                 <label>
                     Trạm xe:
                     <select
@@ -100,6 +139,7 @@ export default function ManageVehicles() {
                     </select>
                 </label>
 
+                {/* Input Biển số xe */}
                 <label>
                     Biển số:
                     <input
@@ -109,6 +149,7 @@ export default function ManageVehicles() {
                     />
                 </label>
 
+                {/* Input Model xe */}
                 <label>
                     Model:
                     <input
@@ -118,6 +159,7 @@ export default function ManageVehicles() {
                     />
                 </label>
 
+                {/* Input Loại xe (Evo, Klara, Vento, ...) */}
                 <label>
                     Loại xe:
                     <select
@@ -130,6 +172,7 @@ export default function ManageVehicles() {
                     </select>
                 </label>
 
+                {/* Input Trạng thái xe */}
                 <label>
                     Trạng thái:
                     <select
@@ -142,6 +185,7 @@ export default function ManageVehicles() {
                     </select>
                 </label>
 
+                {/* Input Phần trăm pin */}
                 <label>
                     Pin (%):
                     <input
@@ -151,6 +195,7 @@ export default function ManageVehicles() {
                     />
                 </label>
 
+                {/* Input Số km đã đi */}
                 <label>
                     Số km đã đi:
                     <input
@@ -160,6 +205,7 @@ export default function ManageVehicles() {
                     />
                 </label>
 
+                {/* Input Giá thuê theo giờ */}
                 <label>
                     Giá thuê/giờ (VNĐ):
                     <input
@@ -169,12 +215,15 @@ export default function ManageVehicles() {
                     />
                 </label>
 
+                {/* Nút lưu form: Cập nhật nếu editing, Thêm mới nếu tạo */}
                 <button onClick={saveVehicle}>
                     {editing ? "Cập nhật xe" : "Thêm xe mới"}
                 </button>
             </div>
 
+            {/* LIST SECTION: Hiển thị danh sách xe */}
             <div>
+                {/* Lặp qua từng xe và hiển thị card */}
                 {vehicles.map(v => (
                     <div key={v.vehicle_id} style={{ border: "1px solid #ddd", padding: 12, marginBottom: 12 }}>
                         <h4>{v.model} ({v.plate_no})</h4>
@@ -185,6 +234,7 @@ export default function ManageVehicles() {
                         <p>Pin: {v.battery_percent}%</p>
                         <p>Số km đã đi: {v.odometer} km</p>
                         <p>Giá thuê/giờ: {v.price_per_hour} VNĐ</p>
+                        {/* Nút sửa và xóa xe */}
                         <div style={{ marginTop: 8 }}>
                             <button onClick={() => startEdit(v)} style={{ marginRight: 8 }}>Chỉnh sửa</button>
                             <button onClick={() => removeVehicle(v.vehicle_id)}>Xóa</button>

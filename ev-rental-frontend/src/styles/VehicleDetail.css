@@ -50,6 +50,39 @@
     border-left: 4px solid #667eea;
 }
 
+.unavailable-warning {
+    background-color: #ffebee;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-top: 12px;
+    color: #c62828;
+    font-weight: 600;
+    font-size: 14px;
+    border: 1px solid #ef9a9a;
+    animation: slideDown 0.3s ease-out;
+}
+
+.unavailable-message {
+    padding: 40px 20px;
+    text-align: center;
+    color: #999;
+    background: #f5f5f5;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .vehicle-detail-info p {
     font-size: 16px;
     color: #555;

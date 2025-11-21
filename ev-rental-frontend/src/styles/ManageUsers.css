@@ -90,6 +90,12 @@
     gap: 15px;
 }
 
+.form-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 15px;
+}
+
 .submit-btn,
 .cancel-btn {
     padding: 12px 24px;

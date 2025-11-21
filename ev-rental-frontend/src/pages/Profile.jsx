@@ -180,7 +180,7 @@ export default function Profile() {
             <div className="rentals-section">
                 <h3> Lịch sử thuê xe của tôi</h3>
                 {loading ? (
-                    <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
+                    <div className="loading-state">
                         Đang tải lịch sử thuê xe...
                     </div>
                 ) : rentals.length === 0 ? (

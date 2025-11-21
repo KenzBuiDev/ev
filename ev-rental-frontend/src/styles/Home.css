@@ -48,6 +48,14 @@
     flex-direction: column;
 }
 
+.loading-state {
+    text-align: center;
+    padding: 40px;
+    color: #999;
+    font-size: 16px;
+    font-weight: 500;
+}
+
 .filter-group label {
     font-weight: 600;
     color: #333;

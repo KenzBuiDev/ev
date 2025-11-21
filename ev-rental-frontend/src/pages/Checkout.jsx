@@ -15,8 +15,14 @@ import api from "../api/fetchClient";
 import '../styles/Checkout.css';
 
 export default function Checkout() {
-  const { state } = useLocation(); // Lấy dữ liệu từ state (khi navigate từ VehicleDetail)
-  const [params] = useSearchParams(); // Lấy URL params (rid=...)
+  // ===== HOOKS CƠ BẢN =====
+  // Lấy dữ liệu từ state (khi navigate từ VehicleDetail)
+  const { state } = useLocation();
+
+  // Lấy URL params (rid=...)
+  const [params] = useSearchParams();
+
+  // Hook điều hướng (dùng để quay lại hoặc navigate)
   const nav = useNavigate();
 
   /**
@@ -27,10 +33,13 @@ export default function Checkout() {
    * 3. Null (nếu không có, sẽ fetch lại từ server)
    */
   const [reservation, setReservation] = useState(() => {
+    // Ưu tiên 1: Lấy từ state (được truyền qua navigate)
     if (state?.reservation) {
       console.log("✓ Reservation từ state (tìm thấy):", state.reservation);
       return state.reservation;
     }
+
+    // Ưu tiên 2: Lấy từ sessionStorage (dành cho trường hợp refresh trang)
     const raw = sessionStorage.getItem("last_reservation");
     if (raw) {
       try {
@@ -41,16 +50,21 @@ export default function Checkout() {
         console.error("✗ Lỗi parse sessionStorage:", e);
       }
     }
+
+    // Ưu tiên 3: Null, sẽ fetch từ server nếu có rid trong URL
     console.warn("⚠ Chưa tìm thấy reservation, sẽ fetch từ server...");
     return null;
   });
 
-  // Lấy reservation_id từ URL params (rid=...)
+  // Lấy reservation_id từ URL params
+  // Ví dụ: /checkout?rid=rsv001 → ridFromQuery = "rsv001"
   const ridFromQuery = params.get("rid") || undefined;
 
   /**
-   * Lấy reservation_id để dùng khi thanh toán
-   * Ưu tiên: từ object reservation → từ URL params
+   * useMemo: Tính toán reservation_id để dùng khi thanh toán
+   * Ưu tiên: 
+   * - Nếu có reservation object → lấy từ reservation.reservation_id
+   * - Nếu không → lấy từ URL params (ridFromQuery)
    */
   const reservationId = useMemo(
     () => reservation?.reservation_id || ridFromQuery,
@@ -58,31 +72,42 @@ export default function Checkout() {
   );
 
   /**
-   * NẾU CHỈ CÓ ID MÀ CHƯA CÓ CHI TIẾT → FETCH LẠI TỪ SERVER
+   * useEffect: FETCH RESERVATION NẾU CHỈ CÓ ID MÀ CHƯA CÓ CHI TIẾT
    * 
-   * Trường hợp: user refresh trang / mở link trực tiếp
-   * - Sẽ không có state (vì state mất khi refresh)
-   * - Sẽ không có sessionStorage nếu private window
-   * - Nhưng sẽ có rid trong URL → fetch lại từ server
+   * Trường hợp sử dụng:
+   * - User refresh trang → state mất
+   * - User mở link trực tiếp (từ email, bookmark)
+   * - Private window → sessionStorage không available
    * 
-   * API: GET /reservations/:id
-   * Response: { reservation_id, vehicle_id, start_time, end_time, hours, price_per_hour, ... }
+   * Giải pháp:
+   * - Lấy rid từ URL params
+   * - Gọi API GET /reservations/:id để lấy chi tiết
+   * - Cấp nhật state và lưu vào sessionStorage
+   * 
+   * API Response:
+   * {
+   *   reservation_id, vehicle_id, start_time, end_time, 
+   *   hours, price_per_hour, ...
+   * }
    */
   useEffect(() => {
+    // Nếu chưa có reservation object nhưng có rid trong URL → fetch
     if (!reservation && ridFromQuery) {
       console.log("Fetching reservation từ server:", ridFromQuery);
       api.request(`/reservations/${ridFromQuery}`)
         .then((r) => {
           console.log("✓ Fetched reservation từ server:", r);
 
-          // Tính toán estimated_amount nếu server không trả về
+          // Nếu server không trả về estimated_amount, tính toán từ hours × price_per_hour
           const enrichedReservation = r;
           if (!enrichedReservation.estimated_amount && enrichedReservation.hours && enrichedReservation.price_per_hour) {
             enrichedReservation.estimated_amount = enrichedReservation.hours * enrichedReservation.price_per_hour;
           }
 
+          // Cập nhật state
           setReservation(enrichedReservation);
-          // Lưu vào sessionStorage để dùng lại nếu user tiếp tục
+
+          // Lưu vào sessionStorage để dùng lại nếu user tiếp tục (quay lại, refresh)
           sessionStorage.setItem("last_reservation", JSON.stringify(enrichedReservation));
         })
         .catch((e) => {
@@ -107,13 +132,16 @@ export default function Checkout() {
    *   created_at: "2024-11-21T..."
    * }
    * 
-   * Lưu ý:
-   * - Redirect tới payment_url sẽ mở VNPay gateway
-   * - Sau khi user thanh toán, VNPay sẽ redirect về /payment/return?vnp_ResponseCode=...
-   * - sessionStorage vẫn giữ reservation data để PaymentReturn dùng
+   * Flow:
+   * 1. Kiểm tra reservationId có tồn tại không
+   * 2. Gọi API tạo link thanh toán VNPay
+   * 3. Redirect user sang VNPay gateway (QR code hoặc form nhập thẻ)
+   * 4. VNPay xử lý giao dịch → redirect về /payment/return?vnp_ResponseCode=...
+   * 5. sessionStorage vẫn giữ reservation data để PaymentReturn component dùng
    */
   async function onPayVNPay() {
     try {
+      // Validate: Phải có reservationId để thanh toán
       if (!reservationId) {
         alert("Thiếu mã đặt chỗ. Hãy quay lại chọn thời gian và đặt chỗ trước.");
         return nav(-1);
@@ -122,16 +150,20 @@ export default function Checkout() {
       console.log("📤 Bắt đầu thanh toán VNPay với reservation:", reservation);
       console.log("📦 SessionStorage hiện tại:", sessionStorage.getItem("last_reservation"));
 
-      // Gửi API tạo link thanh toán
+      // Gửi API request tạo link thanh toán
       const res = await api.request("/payments/vnpay/create", {
         method: "POST",
         body: JSON.stringify({ reservation_id: reservationId }),
       });
       const { payment_url } = res || {};
+
+      // Validate: Phải nhận được payment_url từ server
       if (!payment_url) throw new Error("Không nhận được payment_url từ server");
 
       console.log("✓ Nhận payment_url, chuyển hướng sang VNPay...");
+
       // Redirect sang VNPay gateway (QR code hoặc form nhập thẻ)
+      // Trang này sẽ đóng và VNPay sẽ mở
       window.location.href = payment_url;
     } catch (e) {
       alert("Tạo thanh toán lỗi: " + e.message);
@@ -146,8 +178,11 @@ export default function Checkout() {
       </div>
 
       <div className="checkout-content">
+        {/* ===== PHẦN TRÁI: FORM THÔNG TIN ĐẶT CHỖ ===== */}
         <div className="checkout-form">
           <h3>Thông tin đặt chỗ</h3>
+
+          {/* Mã đặt chỗ */}
           <div className="form-section">
             <p className="summary-item">
               <span className="summary-label">Mã đặt chỗ:</span>
@@ -155,6 +190,7 @@ export default function Checkout() {
             </p>
           </div>
 
+          {/* Thời gian đặt chỗ (từ - đến) */}
           <div className="form-section">
             <h4>Thời gian</h4>
             <p className="summary-item">
@@ -167,6 +203,7 @@ export default function Checkout() {
             </p>
           </div>
 
+          {/* Thông tin xe được chọn */}
           <div className="form-section">
             <h4>Xe được chọn</h4>
             <p className="summary-item">
@@ -176,15 +213,20 @@ export default function Checkout() {
           </div>
         </div>
 
+        {/* ===== PHẦN PHẢI: TÓM TẮT THANH TOÁN ===== */}
         <div className="checkout-summary">
           <h3>Tóm tắt</h3>
 
+          {/* Hiển thị chi tiết nếu có reservation */}
           {reservation && (
             <>
+              {/* Số giờ thuê */}
               <div className="summary-item">
                 <span className="summary-label">Số giờ:</span>
                 <span className="summary-value">{reservation.hours || "-"}</span>
               </div>
+
+              {/* Giá thuê mỗi giờ */}
               <div className="summary-item">
                 <span className="summary-label">Giá/giờ:</span>
                 <span className="summary-value">
@@ -194,6 +236,8 @@ export default function Checkout() {
             </>
           )}
 
+          {/* Tổng tiền tạm tính */}
+          {/* Ưu tiên: estimated_amount từ server → tính từ hours × price_per_hour → "Đang tính..." */}
           <div className="total-amount">
             <span>Tạm tính:</span>
             <span>
@@ -204,10 +248,13 @@ export default function Checkout() {
             </span>
           </div>
 
+          {/* Nút thanh toán VNPay */}
           <button className="checkout-button" onClick={onPayVNPay}>
             Thanh toán qua VNPay (QR)
           </button>
-          <button className="checkout-button" onClick={() => nav(-1)} style={{ marginTop: 10, background: '#e0e0e0', color: '#333' }}>
+
+          {/* Nút quay lại */}
+          <button className="checkout-button checkout-back-button" onClick={() => nav(-1)}>
             Quay lại
           </button>
         </div>
