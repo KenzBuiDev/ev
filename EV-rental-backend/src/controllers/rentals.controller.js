@@ -52,7 +52,7 @@ exports.getAll = async (req, res) => {
     // Lấy danh sách tất cả rental và populate user information
     // Tìm user data dựa vào renter_id để hiển thị tên người dùng
     const docs = await Rental.find().lean();
-    
+
     // Nếu có rentals, populate user info cho mỗi rental
     if (docs && docs.length > 0) {
       const User = require("../models/User");
@@ -75,7 +75,7 @@ exports.getAll = async (req, res) => {
       );
       return res.json(enrichedDocs);
     }
-    
+
     res.json(docs);
   } catch (e) {
     res.status(500).json({ message: e.message });
