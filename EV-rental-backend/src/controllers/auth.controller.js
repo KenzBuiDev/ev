@@ -307,6 +307,13 @@ exports.login = async (req, res) => {
         .json({ success: false, message: "Sai email hoặc mật khẩu" });
     }
 
+    // Step 2b: Check if user account is active
+    if (!user.is_active) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Tài khoản của bạn chưa được kích hoạt" });
+    }
+
     // Step 3: Compare password
     // Support both new (bcrypt) and old (plain text) password formats
     let ok = false;

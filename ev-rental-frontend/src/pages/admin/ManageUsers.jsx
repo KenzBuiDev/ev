@@ -138,10 +138,12 @@ export default function ManageUsers() {
                 </div>
 
                 {/* Input Mật khẩu */}
-                <div className="form-group">
-                    <label>Mật khẩu:</label>
-                    <input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
-                </div>
+                {!editing && (
+                    <div className="form-group">
+                        <label>Mật khẩu:</label>
+                        <input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
+                    </div>
+                )}
 
                 {/* Checkbox Kích hoạt */}
                 <div className="form-group checkbox">

@@ -157,15 +157,9 @@ export default function Navbar() {
                         <span style={{ marginRight: 8 }}>{user.full_name || user.email || user.user_id}</span>
 
                         {/* Button logout - Gọi onLogout() khi click */}
-                        <button onClick={onLogout}>Logout</button>
+                        <button onClick={onLogout}>Đăng xuất</button>
                     </>
-                ) : (
-                    /* 
-                      Link đến trang login nếu chưa đăng nhập
-                      - Hiển thị khi user === null
-                    */
-                    <Link to="/login">Login</Link>
-                )}
+                ) : null}
             </div>
         </nav>
     );

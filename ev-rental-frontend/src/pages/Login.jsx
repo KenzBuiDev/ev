@@ -73,7 +73,7 @@ export default function Login() {
     return (
         <div className="login-container">
             <div className="login-card">
-                <h2>Login</h2>
+                <h2>Đăng nhập</h2>
 
                 {/* Hiển thị lỗi nếu có (email/password sai hoặc lỗi server) */}
                 {error && <div className="error-message">{error}</div>}
@@ -106,7 +106,7 @@ export default function Login() {
 
                     {/* NÚT SUBMIT */}
                     <button type="submit" className="login-button" disabled={loading}>
-                        {loading ? "Đang đăng nhập..." : "Login"}
+                        {loading ? "Đang đăng nhập..." : "Đăng nhập"}
                     </button>
                 </form>
                 {/* LINK CHUYỂN SANG TRANG ĐĂNG KÝ */}
